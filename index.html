@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>[hidden]{display:none!important}img{max-width:100%}body{margin:0}</style>
+<title>Griptape Nodes na Prática</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: canvas pontilhado de editor de nodes; barra lateral de categorias + coluna de cartões em forma de node; montador de fluxo no fim. */
+:root{
+  --bg:#ECEFF3; --dot:#C9D0D8; --panel:#FFFFFF; --panel2:#F5F7FA; --ink:#141A21; --mut:#56616D; --dim:#7D8793; --line:#D3D9E0;
+  --acc:#2357E8; --acc-soft:rgba(35,87,232,.10); --acc-ink:#FFFFFF;
+  --ok:#147A4B; --warn:#A35A00; --warn-soft:rgba(214,130,0,.12);
+  --t-img:#0E8F7C; --t-vid:#B8296F; --t-txt:#A66A0C; --t-json:#6E45CC; --t-list:#2470C2; --t-dict:#5E7020;
+  --t-num:#C44A1E; --t-bool:#66707C; --t-mask:#3F4A55; --t-aud:#17824A; --t-ia:#B3261E; --t-any:#8A939E; --t-3d:#8C5A2B;
+  --wire:#9AA6B2; --shadow:0 1px 0 rgba(20,26,33,.04),0 6px 18px rgba(20,26,33,.06);
+  --f-disp:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1115; --dot:#232A33; --panel:#161B21; --panel2:#1C222A; --ink:#E8EDF2; --mut:#A3AEBA; --dim:#76818D; --line:#29313B;
+  --acc:#7C9CFF; --acc-soft:rgba(124,156,255,.14); --acc-ink:#0E1115;
+  --ok:#4FD08F; --warn:#F2B04B; --warn-soft:rgba(242,176,75,.12);
+  --t-img:#3ED2BB; --t-vid:#F06AAE; --t-txt:#F2B84B; --t-json:#B49CFF; --t-list:#6FB4FF; --t-dict:#B8CC6C;
+  --t-num:#FF8A5C; --t-bool:#A9B2BD; --t-mask:#C6D0DA; --t-aud:#5ED38E; --t-ia:#FF7A6B; --t-any:#8C96A1; --t-3d:#D9A16B;
+  --wire:#4A5562; --shadow:0 1px 0 rgba(0,0,0,.2),0 8px 22px rgba(0,0,0,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1115; --dot:#232A33; --panel:#161B21; --panel2:#1C222A; --ink:#E8EDF2; --mut:#A3AEBA; --dim:#76818D; --line:#29313B;
+  --acc:#7C9CFF; --acc-soft:rgba(124,156,255,.14); --acc-ink:#0E1115;
+  --ok:#4FD08F; --warn:#F2B04B; --warn-soft:rgba(242,176,75,.12);
+  --t-img:#3ED2BB; --t-vid:#F06AAE; --t-txt:#F2B84B; --t-json:#B49CFF; --t-list:#6FB4FF; --t-dict:#B8CC6C;
+  --t-num:#FF8A5C; --t-bool:#A9B2BD; --t-mask:#C6D0DA; --t-aud:#5ED38E; --t-ia:#FF7A6B; --t-any:#8C96A1; --t-3d:#D9A16B;
+  --wire:#4A5562; --shadow:0 1px 0 rgba(0,0,0,.2),0 8px 22px rgba(0,0,0,.25); color-scheme:dark}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{background:var(--bg);background-image:radial-gradient(var(--dot) 1.1px,transparent 1.2px);background-size:22px 22px;color:var(--ink);font:15px/1.55 var(--f-body)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--panel)}
+a{color:inherit}
+h1,h2,h3{font-family:var(--f-disp);margin:0;letter-spacing:-.015em;text-wrap:balance}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.gut{max-width:1360px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* topo */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--panel);border-bottom:1px solid var(--line)}
+.top .gut{display:flex;align-items:center;gap:16px;min-height:62px;padding-block:8px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font:800 17px var(--f-disp)}
+.brand svg{width:34px;height:22px;flex:none}
+.brand small{font:500 12px var(--f-mono);color:var(--dim);letter-spacing:.02em}
+.busca{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:0 10px;min-width:0;flex:0 1 340px}
+.busca svg{width:15px;height:15px;stroke:var(--dim);flex:none}
+.busca input{border:0;background:transparent;color:var(--ink);font:14px var(--f-body);padding:9px 0;width:100%;min-width:0}
+.busca input:focus{outline:0}
+.busca:focus-within{border-color:var(--acc)}
+.busca kbd{font:500 11px var(--f-mono);color:var(--dim);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+@media(max-width:620px){.busca{flex-basis:100%;order:3}.brand small{display:none}}
+
+/* layout */
+.layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:30px;padding-block:26px 64px}
+aside{position:sticky;top:calc(80px + env(safe-area-inset-top,0px));align-self:start;max-height:calc(100vh - 100px);overflow:auto}
+.lbl{font:600 11px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:0 6px 8px}
+.cats{display:flex;flex-direction:column;gap:2px}
+.cats a{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;text-decoration:none;color:var(--mut);font-weight:500;font-size:14px}
+.cats a:hover{background:var(--panel);color:var(--ink)}
+.cats a.on{background:var(--panel);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.cats a i{width:9px;height:9px;border-radius:50%;flex:none;background:var(--c)}
+.cats a .n{margin-left:auto;font:500 12px var(--f-mono);color:var(--dim);font-variant-numeric:tabular-nums}
+.cats .sep{height:1px;background:var(--line);margin:10px 6px}
+@media(max-width:920px){
+  .layout{grid-template-columns:1fr;gap:18px}
+  aside{position:static;max-height:none}
+  .cats{flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:4px}
+  .cats a{white-space:nowrap;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line)}
+  .cats .sep,aside .lbl{display:none}
+}
+main{min-width:0}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:28px;align-items:center}
+.eyebrow{font:600 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--acc);margin:0 0 10px}
+.hero h1{font-size:clamp(30px,4.6vw,50px);line-height:1.02;font-weight:800}
+.hero h1 em{font-style:normal;color:var(--acc)}
+.hero p.lede{color:var(--mut);max-width:60ch;margin:14px 0 0;font-size:16px}
+.demo{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:10px;min-width:0}
+.demo svg{display:block;width:100%;height:auto}
+.demo .cap{font:500 12px var(--f-mono);color:var(--dim);padding:4px 4px 0}
+@media(max-width:820px){.hero{grid-template-columns:1fr}}
+.passos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:22px}
+.passo{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 15px}
+.passo>b{display:block;font:700 15px var(--f-disp);margin-bottom:3px}
+.passo>b span{font:600 12px var(--f-mono);color:var(--acc);margin-right:6px}
+.passo p{margin:0;color:var(--mut);font-size:13.5px}
+@media(max-width:700px){.passos{grid-template-columns:1fr}}
+.legenda{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:16px;align-items:center;font:500 12px var(--f-mono);color:var(--mut)}
+.legenda strong{font-weight:600;color:var(--dim);margin-right:2px}
+.legenda span{display:inline-flex;align-items:center;gap:5px}
+
+/* seções */
+.sec{margin-top:46px}
+.sec-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:16px}
+.sec-h h2{font-size:24px;font-weight:700}
+.sec-h .cnt{font:500 12px var(--f-mono);color:var(--dim)}
+.sec-h p{flex-basis:100%;margin:2px 0 0;color:var(--mut);font-size:14px;max-width:75ch}
+.sec-h .dotc{width:12px;height:12px;border-radius:50%;background:var(--c);align-self:center}
+
+/* cartões-node */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,380px),1fr));gap:16px}
+.node{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);min-width:0;scroll-margin-top:90px}
+.node:target{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+.nh{display:flex;align-items:center;gap:8px;padding:10px 12px 9px;border-bottom:1px solid var(--line);background:var(--panel2);border-radius:14px 14px 0 0}
+.nh i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
+.nh h3{font-size:16px;font-weight:700;line-height:1.2}
+.nh .cat{margin-left:auto;font:500 11px var(--f-mono);color:var(--dim);white-space:nowrap}
+.ports{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;padding:10px 14px 4px;font:500 12px var(--f-mono)}
+.ports .in,.ports .out{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ports .out{align-items:flex-end;text-align:right}
+.pt{display:inline-flex;align-items:center;gap:6px;color:var(--mut);white-space:nowrap}
+.pt b{width:10px;height:10px;border-radius:50%;background:var(--panel);border:2.5px solid var(--tc);flex:none}
+.ports .out .pt{flex-direction:row-reverse}
+.pt.none{color:var(--dim);font-style:italic;font-family:var(--f-body)}
+.nb{padding:4px 14px 14px;display:flex;flex-direction:column;gap:10px;flex:1}
+.nb .fn{margin:0;color:var(--ink);font-size:14px}
+.ex{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 11px}
+.ex .k{font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--acc);display:block;margin-bottom:3px}
+.ex p{margin:0;font-size:13.5px;color:var(--mut)}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font:500 12px var(--f-mono)}
+.chain .c{padding:3px 7px;border:1px solid var(--line);border-radius:6px;color:var(--mut);text-decoration:none;background:var(--panel)}
+.chain a.c:hover{border-color:var(--acc);color:var(--ink)}
+.chain .c.me{border-color:var(--acc);color:var(--acc);background:var(--acc-soft)}
+.chain .ar{color:var(--dim)}
+.acts{display:flex;gap:8px;margin-top:auto;padding-top:2px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;font:600 13px var(--f-body);padding:6px 11px;border-radius:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer;text-decoration:none}
+.btn:hover{border-color:var(--acc)}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.ok{border-color:var(--ok);color:var(--ok)}
+/* antes e depois */
+.vis{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:6px;padding:12px 12px 0;cursor:zoom-in}
+.vis:focus-visible{outline:2px solid var(--acc);outline-offset:-2px;border-radius:10px}
+.vp{position:relative;aspect-ratio:4/3;max-width:100%;border-radius:8px;overflow:hidden;background:var(--panel2);border:1px solid var(--line)}
+.vp.d{border-color:var(--acc)}
+.vp canvas{display:block;width:100%;height:100%}
+.vf{display:flex;flex-direction:column;gap:5px;min-width:0}
+.vf .lb{font:600 10.5px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.vf .lb.d{color:var(--acc)}
+.vis .varr{padding-top:16px}
+.varr{color:var(--dim);font:600 14px var(--f-mono)}
+.dv{position:absolute;inset:0;padding:9px 10px;font:500 11px/1.45 var(--f-mono);color:var(--mut);overflow:hidden;white-space:pre-wrap;word-break:break-word}
+.dv i{font-style:normal}
+.dv .k{color:var(--t-json)}.dv .s{color:var(--t-txt)}.dv .n{color:var(--t-num)}
+.dv .hl{background:var(--acc-soft);color:var(--ink);border-radius:3px;outline:1px solid var(--acc)}
+.dv .del{color:var(--t-ia);text-decoration:line-through}
+.dv .add{color:var(--ok);font-weight:600}
+.dv .mu{color:var(--dim)}
+.dv .big{display:block;font:700 30px/1.1 var(--f-disp);color:var(--ink);margin:4px 0}
+.dv .ch{display:inline-block;border:1px solid var(--line);background:var(--panel);border-radius:4px;padding:0 4px;margin:0 2px 3px 0;color:var(--ink)}
+.dv .ch.hl{border-color:var(--acc)}
+.dv .ch.del{border-color:var(--t-ia)}
+.dv .ch.add{border-color:var(--ok)}
+.dv .nbx{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:5px 7px;margin-bottom:5px;display:flex;flex-direction:column;gap:1px}
+.dv .nbx b{color:var(--ink);font-family:var(--f-body);font-size:11px}
+.dv svg{display:block;width:100%;height:auto}
+.dv.ph{display:grid;place-items:center;text-align:center;color:var(--dim);font-family:var(--f-body);font-size:11px;background:repeating-linear-gradient(135deg,transparent 0 8px,var(--line) 8px 9px)}
+.lbx[hidden]{display:none}
+.lbx{position:fixed;inset:0;z-index:100;background:rgba(5,7,10,.72);display:grid;place-items:center;padding-block:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.lbc{background:var(--panel);border:1px solid var(--line);border-radius:16px;width:100%;max-width:1080px;max-height:100%;overflow:auto;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.lbh{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.lbh h3{font-size:20px}.lbh .btn{margin-left:auto}
+.lbv{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.lbv .lb{font-size:12px}
+.lbv .varr{display:none}
+.lbv .dv{font-size:14px;padding:14px 16px}
+.lbv .dv .big{font-size:52px}
+.lbv .dv .nbx b{font-size:15px}
+.lbv .dv.ph{font-size:15px}
+#lbE{margin:12px 0 0;color:var(--mut);font-size:14.5px;max-width:80ch}
+@media(max-width:640px){.lbv{grid-template-columns:1fr}}
+.vazio{padding:28px;text-align:center;color:var(--mut);border:1px dashed var(--line);border-radius:14px;background:var(--panel)}
+
+/* montador */
+.mont{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:16px}
+.mrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mrow input,.mrow select,.mont textarea{background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--ink);font:14px var(--f-body);padding:8px 10px;min-width:0}
+.mrow input{flex:1 1 220px}
+.mrow input:focus,.mrow select:focus,.mont textarea:focus{outline:0;border-color:var(--acc)}
+.trilho{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:16px 2px 10px;margin:12px 0;border-block:1px dashed var(--line);min-height:110px}
+.mn{flex:none;width:168px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:8px 10px;display:flex;flex-direction:column;gap:5px;position:relative}
+.mn .t{font:700 13.5px var(--f-disp);padding-right:18px;line-height:1.2}
+.mn .io{font:500 11px var(--f-mono);color:var(--dim);display:flex;flex-wrap:wrap;gap:3px 6px;align-items:center}
+.mn .io b{width:7px;height:7px;border-radius:50%;background:var(--tc);display:inline-block}
+.mn .x{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:5px;border:0;background:transparent;color:var(--dim);cursor:pointer;font-size:15px;line-height:1}
+.mn .x:hover{color:var(--ink);background:var(--line)}
+.mn .num{font:600 11px var(--f-mono);color:var(--acc)}
+.lig{flex:none;width:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.lig .w{width:100%;height:2px;background:var(--wire);position:relative}
+.lig.ok .w{background:var(--ok)}
+.lig.warn .w{background:repeating-linear-gradient(90deg,var(--warn) 0 6px,transparent 6px 10px)}
+.lig small{font:600 10.5px var(--f-mono);color:var(--dim)}
+.lig.ok small{color:var(--ok)}.lig.warn small{color:var(--warn)}
+.trilho .vz{color:var(--dim);font-size:14px;align-self:center;padding:0 8px}
+.alertas{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.alerta{background:var(--warn-soft);border:1px solid var(--warn);color:var(--ink);border-radius:9px;padding:8px 11px;font-size:13.5px}
+.alerta b{color:var(--warn)}
+.mont label{display:block;font-size:13px;color:var(--mut);margin:0 0 6px}
+.mont textarea{width:100%;min-height:62px;resize:vertical}
+.pedido{white-space:pre-wrap;font:12.5px/1.55 var(--f-mono);color:var(--mut);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;max-height:340px;overflow:auto;margin-top:10px}
+.mfoot{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.small{font-size:12.5px;color:var(--dim)}
+
+/* workflows */
+.wfs{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.wf{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:9px;box-shadow:var(--shadow)}
+.wf h3{font-size:17px}
+.wf p{margin:0;color:var(--mut);font-size:13.5px}
+
+/* top 10 e bibliotecas */
+.top10{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;counter-reset:t;padding:0;margin:0;list-style:none}
+.top10 li{counter-increment:t;display:flex;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+.top10 li::before{content:counter(t,decimal-leading-zero);font:600 13px var(--f-mono);color:var(--acc);padding-top:1px}
+.top10 a{font-weight:700;text-decoration:none}
+.top10 a:hover{color:var(--acc)}
+.top10 span{display:block;font-size:13px;color:var(--mut)}
+.tbl{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:14px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+tr:last-child td{border-bottom:0}
+td.q{font:500 13px var(--f-mono);font-variant-numeric:tabular-nums;color:var(--mut)}
+.nota{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;color:var(--mut);font-size:14px}
+.nota b{color:var(--ink)}
+.docs{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+footer{border-top:1px solid var(--line);color:var(--dim);font-size:12.5px;padding-block:18px 32px}
+code{font:500 .9em var(--f-mono);background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:0 4px}
+
+/* animação do demo */
+.flow-dot{offset-rotate:0deg;animation:corre 3.2s linear infinite}
+@keyframes corre{from{offset-distance:0%}to{offset-distance:100%}}
+@media (prefers-reduced-motion: reduce){.flow-dot{animation:none;offset-distance:60%}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+
+<header class="top"><div class="gut">
+  <a class="brand" href="#inicio" aria-label="Início">
+    <svg viewBox="0 0 34 22" aria-hidden="true"><rect x="1" y="3" width="11" height="16" rx="3" fill="none" stroke="var(--ink)" stroke-width="2"/><rect x="22" y="3" width="11" height="16" rx="3" fill="none" stroke="var(--ink)" stroke-width="2"/><path d="M12 11 C17 11 17 11 22 11" stroke="var(--acc)" stroke-width="2.4" fill="none"/><circle cx="12" cy="11" r="2.6" fill="var(--acc)"/><circle cx="22" cy="11" r="2.6" fill="var(--acc)"/></svg>
+    <span>Nodes na Prática <small>Griptape Nodes</small></span>
+  </a>
+  <label class="busca" for="q">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="q" type="search" placeholder="Buscar node ou uso (ex.: máscara, telão, loop)" autocomplete="off">
+    <kbd>/</kbd>
+  </label>
+</div></header>
+
+<div class="gut layout">
+  <aside>
+    <div class="lbl">Categorias</div>
+    <nav class="cats" id="cats" aria-label="Categorias"></nav>
+  </aside>
+
+  <main>
+    <section class="hero" id="inicio">
+      <div>
+        <p class="eyebrow">Guia de uso · telões, motion e VFX</p>
+        <h1>Cada node, com <em>um uso real</em> ao lado.</h1>
+        <p class="lede">Os nodes da biblioteca padrão do Griptape Nodes, organizados por categoria. Cada cartão mostra o que entra e o que sai, para que serve, um exemplo aplicado a telão ou motion design e onde ele costuma ficar no fluxo. No fim, monte a sua sequência e copie um pedido pronto para levar a uma IA.</p>
+      </div>
+      <figure class="demo" style="margin:0">
+        <svg viewBox="0 0 420 170" role="img" aria-label="Exemplo de fluxo: Load Image, Color Match, Save Image">
+          <path id="w1" d="M118 70 C150 70 150 92 180 92" fill="none" stroke="var(--t-img)" stroke-width="2.4"/>
+          <path id="w2" d="M118 132 C150 132 150 112 180 112" fill="none" stroke="var(--t-img)" stroke-width="2.4"/>
+          <path id="w3" d="M298 102 C322 102 322 102 340 102" fill="none" stroke="var(--t-img)" stroke-width="2.4"/>
+          <g font-family="IBM Plex Mono, monospace" font-size="10.5">
+            <rect x="8" y="44" width="110" height="44" rx="8" fill="var(--panel2)" stroke="var(--line)"/>
+            <text x="18" y="62" fill="var(--ink)" font-weight="600">Load Image</text><text x="18" y="78" fill="var(--dim)">referência</text>
+            <circle cx="118" cy="70" r="4.5" fill="var(--panel)" stroke="var(--t-img)" stroke-width="2.4"/>
+            <rect x="8" y="106" width="110" height="44" rx="8" fill="var(--panel2)" stroke="var(--line)"/>
+            <text x="18" y="124" fill="var(--ink)" font-weight="600">Generate Image</text><text x="18" y="140" fill="var(--dim)">cena da IA</text>
+            <circle cx="118" cy="132" r="4.5" fill="var(--panel)" stroke="var(--t-img)" stroke-width="2.4"/>
+            <rect x="180" y="72" width="118" height="60" rx="8" fill="var(--panel2)" stroke="var(--acc)"/>
+            <text x="192" y="92" fill="var(--ink)" font-weight="600">Color Match</text><text x="192" y="108" fill="var(--dim)">paleta da ref.</text><text x="192" y="122" fill="var(--dim)">→ cena</text>
+            <circle cx="180" cy="92" r="4.5" fill="var(--panel)" stroke="var(--t-img)" stroke-width="2.4"/>
+            <circle cx="180" cy="112" r="4.5" fill="var(--panel)" stroke="var(--t-img)" stroke-width="2.4"/>
+            <circle cx="298" cy="102" r="4.5" fill="var(--panel)" stroke="var(--t-img)" stroke-width="2.4"/>
+            <rect x="340" y="80" width="74" height="44" rx="8" fill="var(--panel2)" stroke="var(--line)"/>
+            <text x="350" y="98" fill="var(--ink)" font-weight="600">Save</text><text x="350" y="114" fill="var(--dim)">PNG</text>
+            <circle cx="340" cy="102" r="4.5" fill="var(--panel)" stroke="var(--t-img)" stroke-width="2.4"/>
+            <text x="8" y="22" fill="var(--dim)">fluxo · cena da IA com a cor da referência aprovada</text>
+          </g>
+          <circle class="flow-dot" r="3.4" fill="var(--t-img)" style="offset-path:path('M118 70 C150 70 150 92 180 92')"/>
+          <circle class="flow-dot" r="3.4" fill="var(--t-img)" style="offset-path:path('M118 132 C150 132 150 112 180 112');animation-delay:-1.6s"/>
+          <circle class="flow-dot" r="3.4" fill="var(--t-img)" style="offset-path:path('M298 102 C322 102 322 102 340 102');animation-duration:1.6s"/>
+        </svg>
+        <figcaption class="cap">A cor do fio e da porta indica o tipo de dado que passa por ali.</figcaption>
+      </figure>
+    </section>
+
+    <div class="passos">
+      <div class="passo"><b><span>1</span>Encontre o node</b><p>Pela categoria ao lado ou pela busca. Dá para buscar pelo uso, como “loop”, “logo” ou “paleta”.</p></div>
+      <div class="passo"><b><span>2</span>Leia o exemplo</b><p>Cada cartão traz um caso de telão ou motion e a ordem em que os nodes se ligam.</p></div>
+      <div class="passo"><b><span>3</span>Monte e copie</b><p>Use <b>+ Fluxo</b> nos cartões. O montador confere os tipos e escreve o pedido para a IA.</p></div>
+    </div>
+    <div class="legenda" id="legenda"><strong>Tipos de porta:</strong></div>
+
+    <div id="secoes"></div>
+    <div class="vazio" id="semRes" hidden>Nenhum node encontrado para essa busca. Tente o nome em inglês (ex.: “mask”) ou um uso (ex.: “telão”).</div>
+
+    <section class="sec" id="montador">
+      <div class="sec-h"><h2>Montador de fluxo</h2><span class="cnt">monte · confira · copie</span>
+        <p>Coloque os nodes na ordem em que serão ligados. Cada ligação mostra se o tipo de saída combina com a entrada do próximo. A conferência usa os tipos ilustrativos deste guia, então confirme as portas reais no seu canvas.</p></div>
+      <div class="mont">
+        <div class="mrow">
+          <input id="addIn" list="todos" placeholder="Digite o nome de um node e pressione Enter" autocomplete="off">
+          <datalist id="todos"></datalist>
+          <button class="btn pri" id="addBt" type="button">Adicionar</button>
+          <select id="preset" aria-label="Carregar workflow pronto"><option value="">Carregar workflow pronto…</option></select>
+          <button class="btn" id="limpar" type="button">Limpar</button>
+        </div>
+        <div class="trilho" id="trilho"></div>
+        <div class="alertas" id="alertas"></div>
+        <label for="obj">Qual é o objetivo do fluxo? O pedido abaixo é atualizado enquanto você escreve.</label>
+        <textarea id="obj">Gerar 5 cenas para o telão de um show a partir do briefing, todas com a paleta da arte aprovada.</textarea>
+        <div class="pedido" id="pedido"></div>
+        <div class="mfoot"><button class="btn pri" id="copiar" type="button">Copiar o pedido</button><span class="small" id="copStatus" aria-live="polite"></span></div>
+      </div>
+    </section>
+
+    <section class="sec" id="workflows">
+      <div class="sec-h"><h2>Workflows prontos</h2><span class="cnt" id="wfCnt"></span>
+        <p>Sequências comuns em telões e VFX. Abra uma no montador para adaptar.</p></div>
+      <div class="wfs" id="wfs"></div>
+    </section>
+
+    <section class="sec" id="top10">
+      <div class="sec-h"><h2>Dez nodes para começar em telões</h2><p>A seleção do guia, em ordem de prioridade para motion design e LED.</p></div>
+      <ol class="top10" id="t10"></ol>
+    </section>
+
+    <section class="sec" id="bibliotecas">
+      <div class="sec-h"><h2>Bibliotecas adicionais</h2><p>Não fazem parte da biblioteca padrão. Instale pela Library Management quando precisar.</p></div>
+      <div class="tbl"><table>
+        <thead><tr><th>Biblioteca</th><th>Nodes citados</th><th>Para que serve</th><th>Exemplo</th></tr></thead>
+        <tbody>
+          <tr><td><b>Advanced Media</b></td><td class="q">28</td><td>Processamento de mídia, segmentação, detecção e difusão.</td><td>Gerar a máscara do artista automaticamente para usar no Apply Mask, já que não existe keyer nativo.</td></tr>
+          <tr><td><b>Diffusers</b></td><td class="q">19</td><td>Difusão, LoRA, ControlNet e latents.</td><td>Aplicar uma LoRA com o estilo da turnê e manter a pose do palco via ControlNet.</td></tr>
+          <tr><td><b>OpenColorIO</b></td><td class="q">2</td><td>Gerenciamento de cor.</td><td>Converter frames ACES para Rec.709 antes de mandar ao media server do LED.</td></tr>
+          <tr><td><b>OpenEXR</b></td><td class="q">4</td><td>Leitura, inspeção e exportação de EXR.</td><td>Abrir passes de render 3D em EXR e exportar só o beauty para composição.</td></tr>
+          <tr><td><b>Nuke</b></td><td class="q">3</td><td>Integração com scripts e gizmos do Nuke.</td><td>Enviar o resultado do fluxo para um script Nuke que faz o keying com refinamento de borda.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section class="sec" id="limites">
+      <div class="sec-h"><h2>Antes de usar</h2></div>
+      <div class="nota">
+        <p style="margin:0 0 8px">Este guia organiza um levantamento prático. <b>Nomes, portas e parâmetros podem mudar conforme a versão instalada.</b> As portas dos cartões indicam o tipo de dado, não o nome exato de cada entrada. A documentação consultada citava 284 nodes na biblioteca padrão. Aqui estão os mais usados.</p>
+        <p style="margin:0 0 8px">Três pontos que costumam travar: não existe um keyer nativo como o Keylight (o Apply Mask precisa de uma máscara pronta); uma saída <code>json</code> nem sempre liga numa entrada <code>list</code>; e um Agent com ferramentas demais pode estourar o limite de 20 subtarefas por tarefa.</p>
+        <div class="docs">
+          <a class="btn" href="https://docs.griptapenodes.com/en/latest/nodes/overview/" target="_blank" rel="noopener">Biblioteca padrão ↗</a>
+          <a class="btn" href="https://docs.griptapenodes.com/en/latest/libraries/" target="_blank" rel="noopener">Bibliotecas adicionais ↗</a>
+          <a class="btn" href="https://docs.griptapenodes.com/en/stable/" target="_blank" rel="noopener">Documentação estável ↗</a>
+          <a class="btn" href="https://docs.griptapenodes.com/llms-full.txt" target="_blank" rel="noopener">Docs completas para agentes ↗</a>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="lbx" id="lbx" hidden role="dialog" aria-modal="true" aria-labelledby="lbT">
+  <div class="lbc">
+    <div class="lbh"><h3 id="lbT"></h3><button class="btn" id="lbX" type="button">Fechar</button></div>
+    <div class="lbv" id="lbV"></div>
+    <p id="lbE"></p>
+  </div>
+</div>
+<footer><div class="gut">Os antes e depois são ilustrações desenhadas pela própria página para mostrar o efeito de cada node; não são saídas reais do Griptape. Guia de referência em português. Confira cada node na página oficial e na versão registrada em Library Management.</div></footer>
+
+<script>
+/* ===== motor de ilustrações: cena de palco desenhada em canvas + efeitos ===== */
+const VW=256,VH=192;
+const visSlots=()=>`<div class="vf"><span class="lb">Antes</span><div class="vp a" data-p="a"></div></div><span class="varr">→</span><div class="vf"><span class="lb d">Depois</span><div class="vp d" data-p="d"></div></div>`;
+function cv(w,h){const c=document.createElement("canvas");c.width=Math.max(1,w|0);c.height=Math.max(1,h|0);return c}
+const C=f=>(w,h)=>{const c=cv(w,h);f(c.getContext("2d"),c.width,c.height,c);return c};
+function rr(x,X,Y,W,H,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+W,Y,X+W,Y+H,r);x.arcTo(X+W,Y+H,X,Y+H,r);x.arcTo(X,Y+H,X,Y,r);x.arcTo(X,Y,X+W,Y,r);x.closePath()}
+function copyC(s){const c=cv(s.width,s.height);c.getContext("2d").drawImage(s,0,0);return c}
+function bg(x,w,h,c){x.fillStyle=c||"#101318";x.fillRect(0,0,w,h)}
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const MONO='"IBM Plex Mono",ui-monospace,monospace', DISP='"Bricolage Grotesque","Segoe UI",sans-serif';
+function tag(x,t,X,Y,al){const h=x.canvas.height,fs=Math.max(8,Math.round(h*.066));x.save();x.font=`600 ${fs}px ${MONO}`;const m=x.measureText(t).width,p=fs*.45,hh=fs*1.6;if(al==="r")X-=m+2*p;if(al==="c")X-=(m+2*p)/2;x.fillStyle="rgba(8,10,14,.82)";rr(x,X,Y,m+2*p,hh,hh*.3);x.fill();x.fillStyle="#fff";x.textBaseline="middle";x.textAlign="left";x.fillText(t,X+p,Y+hh/2+1);x.restore()}
+function txt(x,t,X,Y,fs,col,al,wt){x.save();x.font=`${wt||600} ${fs}px ${MONO}`;x.fillStyle=col||"#fff";x.textAlign=al||"left";x.textBaseline="middle";x.fillText(t,X,Y);x.restore()}
+function checker(x,X,Y,W,H){const s=Math.max(5,Math.round(x.canvas.height/24));x.save();x.beginPath();x.rect(X,Y,W,H);x.clip();for(let j=0;j*s<H;j++)for(let i=0;i*s<W;i++){x.fillStyle=(i+j)&1?"#454a53":"#2e3239";x.fillRect(X+i*s,Y+j*s,s,s)}x.restore()}
+
+// figuras
+function artistPath(x,w,h,cx){const X=w*cx;x.beginPath();x.arc(X,h*.53,h*.05,0,7);x.moveTo(X-h*.075,h*.785);x.quadraticCurveTo(X-h*.08,h*.6,X,h*.59);x.quadraticCurveTo(X+h*.08,h*.6,X+h*.075,h*.785);x.closePath()}
+function artist(x,w,h,cx,fill,rim){x.save();artistPath(x,w,h,cx);if(fill===undefined){const g=x.createLinearGradient(0,h*.48,0,h*.79);g.addColorStop(0,"#3a1d3c");g.addColorStop(1,"#0c0810");x.fillStyle=g}else x.fillStyle=fill;x.fill();if(rim!==false){x.strokeStyle=rim||"rgba(255,150,90,.85)";x.lineWidth=Math.max(1,h*.006);x.stroke()}
+  const X=w*cx;x.strokeStyle=fill||"#120c14";x.lineWidth=Math.max(1,h*.01);x.beginPath();x.moveTo(X+h*.1,h*.79);x.lineTo(X+h*.1,h*.6);x.lineTo(X+h*.05,h*.57);x.stroke();x.restore()}
+function guitar(x,w,h,cx,fill){artist(x,w,h,cx,fill,fill?false:undefined);const X=w*cx;x.save();x.fillStyle=fill||"#c2562a";x.beginPath();x.ellipse(X+h*.01,h*.71,h*.05,h*.034,-.4,0,7);x.fill();x.strokeStyle=fill||"#c2562a";x.lineWidth=Math.max(1,h*.012);x.beginPath();x.moveTo(X+h*.03,h*.7);x.lineTo(X+h*.13,h*.6);x.stroke();x.restore()}
+function star(x,cx,cy,R,r){x.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,q=i%2?r:R;x.lineTo(cx+Math.cos(a)*q,cy+Math.sin(a)*q)}x.closePath();x.fill()}
+function drawLogo(x,cx,cy,r,o={}){x.save();x.globalAlpha=o.a??1;if(o.fringe){x.strokeStyle="rgba(255,255,255,.45)";x.lineWidth=r*.16;x.beginPath();x.arc(cx,cy,r,0,7);x.stroke()}
+  if(o.mono){x.fillStyle=o.mono}else{const g=x.createLinearGradient(cx-r,cy-r,cx+r,cy+r);g.addColorStop(0,"#ffd34d");g.addColorStop(1,"#ff4f7a");x.fillStyle=g}
+  x.beginPath();x.arc(cx,cy,r,0,7);x.fill();x.fillStyle=o.mono?(o.bg||"#e8e6e1"):"#1a1020";star(x,cx,cy,r*.58,r*.25);
+  if(o.text!==false){x.fillStyle=o.mono||"#fff";x.font=`800 ${r*.62}px ${DISP}`;x.textAlign="center";x.textBaseline="middle";x.fillText("NOVA",cx,cy+r*1.55)}x.restore()}
+
+function drawScene(x,w,h,o){
+  const v=o.v||"show",t=o.t??.5;let g=x.createLinearGradient(0,0,0,h);
+  if(v==="forest"){g.addColorStop(0,"#03141c");g.addColorStop(1,"#0b3b2c")}else if(v==="leds"){g.addColorStop(0,"#07080d");g.addColorStop(1,"#07080d")}else{g.addColorStop(0,"#0a0e2a");g.addColorStop(1,"#2b0f3e")}
+  x.fillStyle=g;x.fillRect(0,0,w,h);
+  if(v==="forest"){g=x.createRadialGradient(w*.72,h*.22,0,w*.72,h*.22,h*.2);g.addColorStop(0,"#f6f1d0");g.addColorStop(.35,"rgba(246,241,208,.7)");g.addColorStop(1,"rgba(246,241,208,0)");x.fillStyle=g;x.fillRect(0,0,w,h);
+    const r=rng(5);for(let k=0;k<2;k++)for(let i=0;i<14;i++){const X=(i/13)*w+(r()-.5)*w*.05,tw=w*(.05+r()*.04),th=h*(.3+r()*.3)*(k?1.2:.8),by=h*(k?.98:.82);x.beginPath();x.moveTo(X,by-th);x.lineTo(X+tw,by);x.lineTo(X-tw,by);x.closePath();x.fillStyle=k?"#04110c":"#0a2a1e";x.fill();if(k){x.strokeStyle="rgba(60,255,170,.55)";x.lineWidth=Math.max(1,h*.006);x.stroke()}}
+    g=x.createLinearGradient(0,h*.6,0,h);g.addColorStop(0,"rgba(120,255,200,0)");g.addColorStop(1,"rgba(120,255,200,.18)");x.fillStyle=g;x.fillRect(0,h*.6,w,h*.4);return}
+  if(v==="leds"){const n=14,m=10;for(let j=0;j<m;j++)for(let i=0;i<n;i++){const hue=(i/n*280+j*8+t*120)%360;x.fillStyle=`hsl(${hue} 95% ${45+15*Math.sin(i*.7+j*.5)}%)`;x.beginPath();x.arc((i+.5)*w/n,(j+.5)*h/m,Math.min(w/n,h/m)*.32,0,7);x.fill()}return}
+  const L=w*.16,T=h*.1,R=w*.84,B=h*.56;
+  g=x.createLinearGradient(L,0,R,0);g.addColorStop(0,"#ff6a2b");g.addColorStop(.5,"#d6247a");g.addColorStop(1,"#19c3c0");x.fillStyle=g;x.fillRect(L,T,R-L,B-T);
+  x.save();x.beginPath();x.rect(L,T,R-L,B-T);x.clip();
+  for(let k=0;k<5;k++){x.beginPath();for(let i=0;i<=40;i++){const X=L+(R-L)*i/40,Y=T+(B-T)*(.2+k*.15)+Math.sin(i/40*Math.PI*3+k+t*6)*h*.03;i?x.lineTo(X,Y):x.moveTo(X,Y)}x.strokeStyle=`rgba(255,255,255,${.12+k*.05})`;x.lineWidth=Math.max(1,h*.012);x.stroke()}
+  const ox=L+(R-L)*(.12+.76*t),oy=T+(B-T)*.45;g=x.createRadialGradient(ox,oy,0,ox,oy,h*.13);g.addColorStop(0,"rgba(255,255,240,1)");g.addColorStop(.25,"rgba(255,230,160,.85)");g.addColorStop(1,"rgba(255,200,120,0)");x.fillStyle=g;x.fillRect(L,T,R-L,B-T);x.restore();
+  x.strokeStyle="#05060a";x.lineWidth=Math.max(1,h*.012);x.strokeRect(L,T,R-L,B-T);
+  x.fillStyle="rgba(255,236,200,.10)";x.beginPath();x.moveTo(w*.02,0);x.lineTo(w*.08,0);x.lineTo(w*.44,h*.79);x.lineTo(w*.26,h*.79);x.fill();
+  x.beginPath();x.moveTo(w*.95,0);x.lineTo(w*.99,0);x.lineTo(w*.72,h*.79);x.lineTo(w*.6,h*.79);x.fill();
+  g=x.createLinearGradient(0,h*.72,0,h);g.addColorStop(0,"#2a1d2e");g.addColorStop(1,"#0a080d");x.fillStyle=g;x.fillRect(0,h*.72,w,h*.28);
+  x.fillStyle="rgba(255,140,80,.45)";x.fillRect(0,h*.72,w,Math.max(1,h*.008));
+  x.save();x.shadowColor="#39f3ff";x.shadowBlur=h*.05;x.strokeStyle="#5ff6ff";x.lineWidth=Math.max(1,h*.014);x.beginPath();x.arc(w*.91,h*.2,h*.065,0,7);x.stroke();x.restore();
+  if(o.band)guitar(x,w,h,.64);
+  if(o.artist!==false)artist(x,w,h,o.ax??.38);
+}
+const _sc=new Map();
+function sc(w,h,o){o=o||{};w=Math.max(1,w|0);h=Math.max(1,h|0);const k=w+"x"+h+JSON.stringify(o);if(!_sc.has(k)){const c=cv(w,h);drawScene(c.getContext("2d"),w,h,o);_sc.set(k,c)}return _sc.get(k)}
+const S=o=>C((x,w,h)=>x.drawImage(sc(w,h,o),0,0));
+const FX=(f,o,tg)=>C((x,w,h)=>{x.drawImage(f(sc(w,h,o)),0,0);if(tg)tag(x,tg,6,6)});
+
+// efeitos de pixel
+const cl=v=>v<0?0:v>255?255:v;
+function px(s,f){const c=copyC(s),x=c.getContext("2d"),d=x.getImageData(0,0,c.width,c.height),a=d.data,W=c.width;for(let i=0,p=0;i<a.length;i+=4,p++)f(a,i,p%W,(p/W)|0);x.putImageData(d,0,0);return c}
+const inv=s=>px(s,(a,i)=>{a[i]=255-a[i];a[i+1]=255-a[i+1];a[i+2]=255-a[i+2]});
+const eq=(s,b,ct,sa)=>px(s,(a,i)=>{let r=a[i],g=a[i+1],q=a[i+2];const l=.3*r+.59*g+.11*q;r=l+(r-l)*sa;g=l+(g-l)*sa;q=l+(q-l)*sa;a[i]=cl((r-128)*ct+128+b);a[i+1]=cl((g-128)*ct+128+b);a[i+2]=cl((q-128)*ct+128+b)});
+const lev=(s,lo,hi,gm)=>px(s,(a,i)=>{for(let k=0;k<3;k++){let v=(a[i+k]-lo)/(hi-lo);v=v<0?0:v>1?1:v;a[i+k]=255*Math.pow(v,1/gm)}});
+function blur(s,f){const w=s.width,h=s.height,sm=cv(w/f,h/f),sx=sm.getContext("2d");sx.imageSmoothingQuality="high";sx.drawImage(s,0,0,sm.width,sm.height);const c=cv(w,h),x=c.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(sm,0,0,w,h);return c}
+function bloom(s){const th=px(s,(a,i)=>{const l=.3*a[i]+.59*a[i+1]+.11*a[i+2];if(l<165){a[i]=a[i+1]=a[i+2]=0}});const b1=blur(th,6),b2=blur(th,14),c=copyC(s),x=c.getContext("2d");x.globalCompositeOperation="lighter";x.drawImage(b1,0,0);x.drawImage(b1,0,0);x.drawImage(b2,0,0);x.drawImage(b2,0,0);return c}
+function stats(s){const d=s.getContext("2d").getImageData(0,0,s.width,s.height).data,m=[0,0,0],q=[0,0,0],n=d.length/4;for(let i=0;i<d.length;i+=4)for(let k=0;k<3;k++){m[k]+=d[i+k];q[k]+=d[i+k]*d[i+k]}return m.map((v,k)=>{const mu=v/n;return[mu,Math.sqrt(Math.max(1,q[k]/n-mu*mu))]})}
+function cmatch(s,ref){const A=stats(s),B=stats(ref);return px(s,(a,i)=>{for(let k=0;k<3;k++)a[i+k]=cl((a[i+k]-A[k][0])/A[k][1]*B[k][1]+B[k][0])})}
+const grain=(s,amt)=>{const r=rng(7);return px(s,(a,i)=>{const n=(r()-.5)*amt;a[i]=cl(a[i]+n);a[i+1]=cl(a[i+1]+n);a[i+2]=cl(a[i+2]+n)})};
+function rgbs(s){const w=s.width,h=s.height,dx=Math.max(2,Math.round(w*.025)),src=s.getContext("2d").getImageData(0,0,w,h).data;return px(s,(a,i,X,Y)=>{const L=Math.max(0,X-dx),R=Math.min(w-1,X+dx);a[i]=src[(Y*w+L)*4];a[i+2]=src[(Y*w+R)*4+2]})}
+function vign(s){const c=copyC(s),x=c.getContext("2d"),w=c.width,h=c.height,g=x.createRadialGradient(w/2,h/2,h*.22,w/2,h/2,Math.hypot(w,h)/2);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,"rgba(0,0,0,.92)");x.fillStyle=g;x.fillRect(0,0,w,h);return c}
+const curves=s=>px(s,(a,i)=>{const l=(.3*a[i]+.59*a[i+1]+.11*a[i+2])/255,sh=1-l;a[i]=cl(a[i]*.88+l*60-sh*35);a[i+1]=cl(a[i+1]*.9+l*14+sh*18);a[i+2]=cl(a[i+2]*.88-l*45+sh*45)});
+const post=(s,n)=>px(s,(a,i)=>{for(let k=0;k<3;k++)a[i+k]=Math.round(a[i+k]/255*n)/n*255});
+function flipC(s){const c=cv(s.width,s.height),x=c.getContext("2d");x.translate(c.width,0);x.scale(-1,1);x.drawImage(s,0,0);return c}
+function tint(s,col,a,mode){const c=copyC(s),x=c.getContext("2d");x.globalAlpha=a;x.globalCompositeOperation=mode||"color";x.fillStyle=col;x.fillRect(0,0,c.width,c.height);return c}
+const dull=s=>eq(s,-38,.75,.3), vivid=s=>eq(s,12,1.12,1.45), warm=s=>tint(s,"#ff8a1e",.55), cool=s=>tint(s,"#2a5cff",.6);
+function maskC(w,h,who){const c=cv(w,h),x=c.getContext("2d");bg(x,c.width,c.height,"#000");if(who.includes("v"))artist(x,c.width,c.height,.38,"#fff",false);if(who.includes("g"))guitar(x,c.width,c.height,.64,"#fff");return c}
+function alphaFrom(m){return px(m,(a,i)=>{a[i+3]=a[i];a[i]=a[i+1]=a[i+2]=255})}
+function cut(s,m){const c=copyC(s),x=c.getContext("2d");x.globalCompositeOperation="destination-in";x.drawImage(alphaFrom(m),0,0);return c}
+function overlayLogo(s){const c=copyC(s),x=c.getContext("2d"),w=c.width,h=c.height;drawLogo(x,w*.88,h*.16,h*.07,{text:false});x.fillStyle="rgba(10,10,16,.82)";x.fillRect(w*.05,h*.8,w*.5,h*.12);x.fillStyle="#ff7a33";x.fillRect(w*.05,h*.8,Math.max(2,w*.012),h*.12);if(h>40)txt(x,"DJ NOVA · 22:00",w*.08,h*.86,Math.max(6,h*.065),"#fff");return c}
+function wave(x,X,Y,W,H,col,seed,amp){const r=rng(seed||3),st=Math.max(3,x.canvas.width/80),n=Math.floor(W/st);x.fillStyle=col||"#5ED38E";for(let i=0;i<n;i++){const e=(Math.sin(i*.23)*.5+.5)*.55+r()*.45,hh=Math.max(1.5,H*e*(amp??1));x.fillRect(X+i*st,Y+H/2-hh/2,st*.6,hh)}}
+function palette(s,n){const d=s.getContext("2d").getImageData(0,0,s.width,s.height).data,m=new Map();for(let i=0;i<d.length;i+=8){const k=(d[i]>>5)<<6|(d[i+1]>>5)<<3|(d[i+2]>>5),e=m.get(k)||[0,0,0,0];e[0]+=d[i];e[1]+=d[i+1];e[2]+=d[i+2];e[3]++;m.set(k,e)}
+  const arr=[...m.values()].sort((a,b)=>b[3]-a[3]).map(e=>[e[0]/e[3],e[1]/e[3],e[2]/e[3]]),out=[];for(const c of arr){if(out.every(o=>Math.hypot(o[0]-c[0],o[1]-c[1],o[2]-c[2])>70))out.push(c);if(out.length===n)break}return out}
+const hex=c=>"#"+c.map(v=>Math.round(v).toString(16).padStart(2,"0")).join("").toUpperCase();
+const VARS=[s=>s,warm,cool,curves,vivid,s=>eq(s,0,1.05,0)];
+
+function fileI(name,meta,col){return C((x,w,h)=>{bg(x,w,h,"#12151b");const dw=h*.34,dh=h*.44,X=w/2-dw/2,Y=h*.13,f=dw*.28;x.fillStyle="#e9eef3";x.beginPath();x.moveTo(X,Y);x.lineTo(X+dw-f,Y);x.lineTo(X+dw,Y+f);x.lineTo(X+dw,Y+dh);x.lineTo(X,Y+dh);x.closePath();x.fill();x.fillStyle="#b9c2cc";x.beginPath();x.moveTo(X+dw-f,Y);x.lineTo(X+dw-f,Y+f);x.lineTo(X+dw,Y+f);x.fill();
+  const ext=name.split(".").pop().toUpperCase();x.fillStyle=col||"#3ED2BB";rr(x,X-dw*.15,Y+dh*.55,dw*.85,dh*.26,3);x.fill();txt(x,ext,X-dw*.15+dw*.425,Y+dh*.68,h*.066,"#0b0d11","center",700);
+  txt(x,name,w/2,h*.72,Math.min(h*.066,w*1.6/name.length),"#e9eef3","center");txt(x,meta,w/2,h*.83,h*.056,"#8a95a1","center",500)})}
+function ph(t){return ()=>{const d=document.createElement("div");d.className="dv ph";d.innerHTML=t;return d}}
+function D(t){return ()=>{const d=document.createElement("div");d.className="dv";d.innerHTML=t;return d}}
+const k=s=>`<i class="k">${s}</i>`,st=s=>`<i class="s">${s}</i>`,nu=s=>`<i class="n">${s}</i>`,hl=s=>`<i class="hl">${s}</i>`,del=s=>`<i class="del">${s}</i>`,ad=s=>`<i class="add">${s}</i>`,mu=s=>`<i class="mu">${s}</i>`,ch=(s,c)=>`<i class="ch ${c||""}">${s}</i>`,big=s=>`<i class="big">${s}</i>`;
+
+// tira de vídeo: quadro principal + frames numerados
+function vid(o){o=o||{};return C((x,w,h)=>{bg(x,w,h,"#0b0c10");const fx=o.fx||(c=>c),so=o.so||{},tm=(o.tmax||6)-1,mh=Math.round(h*.6);
+  if(o.main!=null){x.drawImage(fx(sc(w,mh,{...so,t:o.main})),0,0);if(o.mainTint){x.fillStyle=o.mainTint;x.fillRect(0,0,w,mh)}}
+  const it=(o.frames||[1,2,3,4,5,6]).map(f=>typeof f==="number"?{n:f}:f),nS=it.filter(f=>f.sep).length,g=Math.max(2,w*.012),sepG=w*.05,n=it.length,fw=(w-g*(n+1)-sepG*nS)/n,fh=Math.min(h*.2,fw*.75),sy=mh+h*.06;let X=g;
+  it.forEach(f=>{if(f.sep){X+=sepG/2;x.fillStyle="#7C9CFF";x.fillRect(X-1-g/2,sy-h*.02,2,fh+h*.04);X+=sepG/2}const fwi=Math.max(1,Math.round(fw)),fhi=Math.max(1,Math.round(fh));x.drawImage(fx(sc(fwi,fhi,{...so,t:f.t!=null?f.t:(f.n-1)/tm})),X,sy);if(f.tint){x.fillStyle=f.tint;x.fillRect(X,sy,fwi,fhi)}if(f.hl){x.strokeStyle="#7C9CFF";x.lineWidth=2;x.strokeRect(X-1,sy-1,fwi+2,fhi+2)}txt(x,String(f.l||f.n),X+fwi/2,sy+fhi+h*.06,Math.max(7,Math.min(h*.06,fw*.4)),f.hl?"#9fb6ff":"#cfd6de","center");X+=fw+g});
+  if(o.tag)tag(x,o.tag,w-6,6,"r");if(o.tagL)tag(x,o.tagL,6,6)})}
+const seq=(a,b)=>{const r=[];for(let i=a;i<=b;i++)r.push(i);return r};
+
+const VIS={
+/* ---------- imagem ---------- */
+"Load Image":[fileI("key_visual.png","3840×2160 · PNG"),C((x,w,h)=>{x.drawImage(sc(w,h),0,0);tag(x,"imagem no fluxo",6,6)})],
+"Save Image":[S(),fileI("cena03_led.png","PNG · RGBA")],
+"Display Image":[ph("imagem passando pelo fio<br>sem prévia"),C((x,w,h)=>{bg(x,w,h,"#1b1f26");x.fillStyle="#262c35";x.fillRect(0,0,w,h*.1);["#ff5f57","#febc2e","#28c840"].forEach((c,i)=>{x.fillStyle=c;x.beginPath();x.arc(w*.04+i*h*.05,h*.05,h*.016,0,7);x.fill()});x.drawImage(sc(w*.9,h*.82),w*.05,h*.14)})],
+"Generate Image":[D(`${mu("prompt")}\n${st('"floresta neon à noite, lua cheia, névoa verde, silhuetas de árvores, 16:9"')}`),S({v:"forest"})],
+"Describe Image":[S(),D(`${mu("descrição")}\n${st('"Palco noturno com telão em degradê laranja, magenta e ciano. Artista em silhueta à esquerda, anel neon no canto superior direito, dois fachos de luz."')}`)],
+"Rescale Image":[C((x,w,h)=>{x.drawImage(sc(w,h),0,0);tag(x,"3840×2160",6,6)}),C((x,w,h)=>{bg(x,w,h);x.setLineDash([4,3]);x.strokeStyle="#6b7480";x.strokeRect(1,1,w-2,h-2);x.setLineDash([]);x.drawImage(sc(w/2,h/2),w/4,h/4);tag(x,"1920×1080",6,6)})],
+"Crop Image":[C((x,w,h)=>{x.drawImage(sc(w,h),0,0);const s=h*.8,X=(w-s)/2,Y=(h-s)/2;x.fillStyle="rgba(0,0,0,.55)";x.fillRect(0,0,X,h);x.fillRect(X+s,0,w-X-s,h);x.setLineDash([5,4]);x.strokeStyle="#fff";x.lineWidth=1.5;x.strokeRect(X,Y,s,s);x.setLineDash([])}),C((x,w,h)=>{bg(x,w,h);const src=sc(w,h),s=h*.8,sx=(w-s)/2,sy=(h-s)/2,d=h*.92;x.drawImage(src,sx,sy,s,s,(w-d)/2,(h-d)/2,d,d);tag(x,"1:1",6,6)})],
+"Extend Canvas":[C((x,w,h)=>{bg(x,w,h);const bh=w*9/16;x.drawImage(sc(w,bh),0,(h-bh)/2);tag(x,"16:9",6,6)}),C((x,w,h)=>{bg(x,w,h);const bh=w*9/21,y=(h-bh)/2,iw=bh*16/9;checker(x,0,y,w,bh);x.drawImage(sc(iw,bh),(w-iw)/2,y);x.setLineDash([4,3]);x.strokeStyle="#9fb6ff";x.strokeRect(1,y,w-2,bh);x.setLineDash([]);tag(x,"21:9 · margens vazias",6,6)})],
+"Flip Image":[S(),FX(flipC)],
+"Invert Image":[C((x,w,h)=>{bg(x,w,h,"#e8e6e1");drawLogo(x,w/2,h*.4,h*.2,{mono:"#111",bg:"#e8e6e1"})}),C((x,w,h)=>{const c=cv(w,h),y=c.getContext("2d");bg(y,w,h,"#e8e6e1");drawLogo(y,w/2,h*.4,h*.2,{mono:"#111",bg:"#e8e6e1"});x.drawImage(inv(c),0,0)})],
+"Image Blend Compositor":[C((x,w,h)=>{x.drawImage(sc(w,h),0,0);const s=h*.36,X=w-s-8,Y=h-s-8;checker(x,X,Y,s,s);drawLogo(x,X+s/2,Y+s*.4,s*.25);x.setLineDash([4,3]);x.strokeStyle="#fff";x.strokeRect(X,Y,s,s);x.setLineDash([]);tag(x,"+ logo RGBA",6,6)}),C((x,w,h)=>{x.drawImage(sc(w,h),0,0);drawLogo(x,w*.82,h*.74,h*.1,{a:.85});tag(x,"opacidade 85%",6,6)})],
+"Image Bash":[C((x,w,h)=>{bg(x,w,h);[["forest","floresta"],["show","palco"],["leds","LEDs"]].forEach(([v,l],i)=>{const tw=w*.42,th=tw*.75,X=[w*.04,w*.54,w*.29][i],Y=[h*.06,h*.06,h*.5][i];x.drawImage(sc(tw,th,{v}),X,Y);txt(x,l,X+4,Y+th+h*.04,h*.055,"#cfd6de")})}),C((x,w,h)=>{bg(x,w,h,"#000");const g=2;x.drawImage(sc(w*.5-g,h,{v:"forest"}),0,0);x.drawImage(sc(w*.5,h*.6-g,{}),w*.5,0);x.drawImage(sc(w*.5,h*.4,{v:"leds"}),w*.5,h*.6);tag(x,"moodboard",6,6)})],
+"Merge Images":[C((x,w,h)=>{bg(x,w,h);const tw=w*.4,th=tw*.75;[[.05,.06,-.06],[.52,.04,.05],[.08,.52,.04],[.55,.5,-.05]].forEach(([a,b,r],i)=>{x.save();x.translate(w*a+tw/2,h*b+th/2);x.rotate(r);x.drawImage(VARS[i](sc(tw,th)),-tw/2,-th/2);x.restore()})}),C((x,w,h)=>{bg(x,w,h,"#000");const tw=w/2-1,th=h/2-1;[0,1,2,3].forEach(i=>x.drawImage(VARS[i](sc(tw,th)),(i%2)*(tw+2),(i>>1)*(th+2)));tag(x,"1 arquivo",6,6)})],
+"Image Grid Splitter":[C((x,w,h)=>{bg(x,w,h,"#000");const tw=w/2-1,th=h/2-1;[0,1,2,3].forEach(i=>x.drawImage(VARS[i](sc(tw,th)),(i%2)*(tw+2),(i>>1)*(th+2)));tag(x,"grid 2×2",6,6)}),C((x,w,h)=>{bg(x,w,h);const g=w*.05,tw=(w-g*3)/2,th=(h-g*3)/2;[0,1,2,3].forEach(i=>{const X=g+(i%2)*(tw+g),Y=g+(i>>1)*(th+g);x.drawImage(VARS[i](sc(tw,th)),X,Y);tag(x,String(i+1),X+3,Y+3)})})],
+"Display Image Grid":[C((x,w,h)=>{bg(x,w,h);const tw=w*.55,th=tw*.75;for(let i=4;i>=0;i--)x.drawImage(VARS[i](sc(tw,th)),w*.12+i*w*.05,h*.1+i*h*.07);tag(x,"5 imagens",w-6,6,"r")}),C((x,w,h)=>{bg(x,w,h);const g=w*.03,tw=(w-g*4)/3,th=tw*.75,oy=(h-th*2-g)/2;for(let i=0;i<5;i++){const X=g+(i%3)*(tw+g),Y=oy+((i/3)|0)*(th+g);x.drawImage(VARS[i](sc(tw,th)),X,Y);txt(x,String(i+1),X+4,Y+h*.05,h*.05,"#fff")}})],
+"Compare Images":[C((x,w,h)=>{bg(x,w,h);const tw=w*.46,th=tw*.75;x.drawImage(sc(tw,th),w*.03,(h-th)/2);x.drawImage(curves(sc(tw,th)),w*.51,(h-th)/2);tag(x,"A",w*.03+4,(h-th)/2+4);tag(x,"B",w*.51+4,(h-th)/2+4)}),C((x,w,h)=>{x.drawImage(sc(w,h),0,0);x.drawImage(curves(sc(w,h)),w/2,0,w/2,h,w/2,0,w/2,h);x.fillStyle="#fff";x.fillRect(w/2-1,0,2,h);x.beginPath();x.arc(w/2,h/2,h*.045,0,7);x.fill();tag(x,"A",6,6);tag(x,"B",w-6,6,"r")})],
+"Add Text to Existing Image":[S(),C((x,w,h)=>{x.drawImage(sc(w,h),0,0);x.save();x.shadowColor="rgba(0,0,0,.6)";x.shadowBlur=h*.03;x.fillStyle="#fff";x.font=`800 ${h*.13}px ${DISP}`;x.textAlign="center";x.fillText("DJ NOVA",w/2,h*.36);x.font=`600 ${h*.06}px ${MONO}`;x.fillText("22:00 · PALCO SUL",w/2,h*.46);x.restore()})],
+"Add Bounding Boxes":[S(),C((x,w,h)=>{x.drawImage(sc(w,h),0,0);[[.16,.1,.68,.46,"#3ED2BB","LED A"],[.3,.46,.16,.34,"#F2B84B","artista"],[.84,.1,.15,.22,"#F06AAE","LED B"]].forEach(([a,b,c,d,col,l])=>{x.strokeStyle=col;x.lineWidth=Math.max(1.5,h*.01);x.strokeRect(w*a,h*b,w*c,h*d);x.fillStyle=col;x.font=`700 ${h*.055}px ${MONO}`;const m=x.measureText(l).width;x.fillRect(w*a,h*b-h*.07,m+8,h*.07);x.fillStyle="#0b0d11";x.textBaseline="middle";x.fillText(l,w*a+4,h*b-h*.035)})})],
+"Adjust Image EQ":[FX(dull,{},"LED a 60%"),FX(s=>vivid(s),{},"+brilho +saturação")],
+"Adjust Image Levels":[FX(s=>eq(s,-70,.85,1),{},"pretos esmagados"),FX(s=>lev(eq(s,-70,.85,1),0,130,1.5),{},"níveis abertos")],
+"Bloom Effect":[S(),FX(bloom)],
+"Color Match":[C((x,w,h)=>{x.drawImage(cool(sc(w,h)),0,0);const s=w*.3;x.drawImage(warm(sc(s,s*.75,{v:"forest"})),w-s-6,h-s*.75-6);x.strokeStyle="#fff";x.strokeRect(w-s-6,h-s*.75-6,s,s*.75);tag(x,"cena gerada",6,6);tag(x,"ref.",w-6,h-s*.75-24,"r")}),C((x,w,h)=>{const ref=warm(sc(w,h,{v:"forest"}));x.drawImage(cmatch(cool(sc(w,h)),ref),0,0);const s=w*.3;x.drawImage(warm(sc(s,s*.75,{v:"forest"})),w-s-6,h-s*.75-6);x.strokeStyle="#fff";x.strokeRect(w-s-6,h-s*.75-6,s,s*.75);tag(x,"paleta da ref.",6,6)})],
+"Extract Key Colors":[S(),C((x,w,h)=>{bg(x,w,h);x.drawImage(sc(w,h*.56),0,0);const p=palette(sc(w,h),5),sw=w/5;p.forEach((c,i)=>{x.fillStyle=`rgb(${c.map(Math.round)})`;x.fillRect(i*sw,h*.6,sw-2,h*.22);txt(x,hex(c),i*sw+sw/2,h*.9,Math.min(h*.05,sw/5.2),"#cfd6de","center")})})],
+"Create Color Bars":[ph("sem imagem de entrada<br>resolução: 3840×2160"),C((x,w,h)=>{const a=["#c0c0c0","#c0c000","#00c0c0","#00c000","#c000c0","#c00000","#0000c0"],b=["#0000c0","#131313","#c000c0","#131313","#00c0c0","#131313","#c0c0c0"],bw=w/7;a.forEach((c,i)=>{x.fillStyle=c;x.fillRect(i*bw,0,bw+1,h*.67)});b.forEach((c,i)=>{x.fillStyle=c;x.fillRect(i*bw,h*.67,bw+1,h*.08)});[["#00214c",1.25],["#ffffff",1.25],["#32006a",1.25],["#131313",3.25]].reduce((X,[c,m])=>{x.fillStyle=c;x.fillRect(X,h*.75,bw*m+1,h*.25);return X+bw*m},0);tag(x,"barras de calibração",6,6)})],
+"Gaussian Edge Fade":[C((x,w,h)=>{bg(x,w,h,"#000");x.drawImage(sc(w*.76,h*.76),w*.12,h*.12);tag(x,"borda dura",6,6)}),C((x,w,h)=>{bg(x,w,h,"#000");const t=cv(w,h),tx=t.getContext("2d");tx.drawImage(sc(w*.76,h*.76),w*.12,h*.12);const m=cv(w,h),mx=m.getContext("2d");mx.fillStyle="#fff";mx.fillRect(w*.19,h*.19,w*.62,h*.62);tx.globalCompositeOperation="destination-in";tx.drawImage(blur(m,9),0,0);x.drawImage(t,0,0);tag(x,"borda esfumada",6,6)})],
+"Apply Mask":[C((x,w,h)=>{x.drawImage(sc(w,h),0,0);const s=w*.3;x.drawImage(maskC(s,s*.75,"v"),w-s-6,h-s*.75-6);x.strokeStyle="#fff";x.strokeRect(w-s-6,h-s*.75-6,s,s*.75);tag(x,"+ máscara",6,6)}),C((x,w,h)=>{checker(x,0,0,w,h);x.drawImage(cut(sc(w,h),maskC(w,h,"v")),0,0);tag(x,"PNG RGBA",6,6)})],
+"Paint Mask":[S(),C((x,w,h)=>{x.drawImage(sc(w,h),0,0);x.save();x.globalAlpha=.55;x.strokeStyle="#ff2a55";x.lineCap="round";x.lineJoin="round";x.lineWidth=h*.12;x.beginPath();x.moveTo(w*.05,h*.05);x.lineTo(w*.95,h*.05);x.moveTo(w*.03,h*.15);x.lineTo(w*.14,h*.3);x.lineTo(w*.12,h*.55);x.moveTo(w*.86,h*.28);x.lineTo(w*.95,h*.55);x.stroke();x.restore();tag(x,"área pintada",6,h-26)})],
+"Invert Mask":[C((x,w,h)=>{x.drawImage(maskC(w,h,"v"),0,0);tag(x,"artista",6,6)}),C((x,w,h)=>{x.drawImage(inv(maskC(w,h,"v")),0,0);tag(x,"fundo",6,6)})],
+"Combine Masks":[C((x,w,h)=>{bg(x,w,h);const tw=w*.47,th=h*.7;x.drawImage(maskC(tw,th,"v"),w*.02,h*.15);x.drawImage(maskC(tw,th,"g"),w*.51,h*.15);txt(x,"vocal",w*.02+4,h*.1,h*.055,"#cfd6de");txt(x,"guitarra",w*.51+4,h*.1,h*.055,"#cfd6de")}),C((x,w,h)=>{x.drawImage(maskC(w,h,"vg"),0,0);tag(x,"banda",6,6)})],
+"Display Mask":[ph("máscara no fio<br>sem prévia"),C((x,w,h)=>{x.drawImage(maskC(w,h,"v"),0,0);tag(x,"máscara",6,6)})],
+"Display Channel":[C((x,w,h)=>{checker(x,0,0,w,h);drawLogo(x,w/2,h*.42,h*.2,{fringe:true});tag(x,"RGBA",6,6)}),C((x,w,h)=>{const c=cv(w,h),y=c.getContext("2d");drawLogo(y,w/2,h*.42,h*.2,{fringe:true});const a=px(c,(d,i)=>{d[i]=d[i+1]=d[i+2]=d[i+3];d[i+3]=255});x.drawImage(a,0,0);tag(x,"canal alpha · borda à vista",6,6)})],
+"Webcam":[ph("câmera conectada<br>nenhum frame capturado"),C((x,w,h)=>{x.drawImage(grain(blur(sc(w,h),2),46),0,0);x.fillStyle="#ff3b3b";x.beginPath();x.arc(w*.06,h*.08,h*.025,0,7);x.fill();txt(x,"REC 00:00:12",w*.1,h*.08,h*.05,"#fff")})],
+
+/* ---------- vídeo ---------- */
+"Load Video":[fileI("loop_fundo.mp4","00:10 · 30 fps","#F06AAE"),vid({main:.4,tagL:"vídeo no fluxo"})],
+"Save Video":[vid({main:.4}),fileI("abertura_5040x2160.mp4","H.264 · 00:25","#F06AAE")],
+"Display Video":[ph("vídeo no fio<br>sem prévia"),C((x,w,h)=>{bg(x,w,h,"#000");x.drawImage(sc(w,h*.82,{t:.4}),0,0);x.fillStyle="#15181d";x.fillRect(0,h*.82,w,h*.18);x.fillStyle="#fff";x.beginPath();x.moveTo(w*.04,h*.86);x.lineTo(w*.04,h*.96);x.lineTo(w*.08,h*.91);x.fill();x.fillStyle="#3a404a";x.fillRect(w*.12,h*.9,w*.62,h*.02);x.fillStyle="#7C9CFF";x.fillRect(w*.12,h*.9,w*.25,h*.02);txt(x,"0:04 / 0:10",w*.77,h*.91,h*.05,"#cfd6de")})],
+"Resize Video":[vid({main:.4,tag:"3840×2160"}),C((x,w,h)=>{bg(x,w,h);x.setLineDash([4,3]);x.strokeStyle="#6b7480";x.strokeRect(1,1,w-2,h-2);x.setLineDash([]);x.drawImage(sc(w/2,h/2,{t:.4}),w/4,h/4);tag(x,"1920×1080",6,6)})],
+"Change Speed":[vid({main:.3,tag:"1× · 0:10"}),vid({main:.3,frames:[1,1,2,2,3,3,4,4,5,5,6,6],tag:"0.5× · 0:20"})],
+"Reverse Video":[vid({main:.1,tag:"▶ normal"}),vid({main:.9,frames:[6,5,4,3,2,1],tag:"◀ reverso"})],
+"Hold Video Frames":[vid({main:1,so:{v:"show"},frames:[1,2,3,4,5,6]}),vid({main:1,frames:[1,2,3,4,5,6,{n:6,hl:1},{n:6,hl:1},{n:6,hl:1}],tag:"+3 s no último frame"})],
+"Split Video":[vid({main:.5,frames:seq(1,9),tmax:9,tag:"ensaio completo"}),vid({main:.5,frames:[1,2,3,{n:4,sep:1},5,6,{n:7,sep:1},8,9],tmax:9,tag:"3 trechos"})],
+"Concatenate Videos":[vid({main:.2,mainTint:"rgba(255,120,40,.25)",frames:[{n:1,l:"A1",tint:"rgba(255,120,40,.3)"},{n:2,l:"A2",tint:"rgba(255,120,40,.3)"},{n:3,l:"B1",sep:1,tint:"rgba(40,120,255,.3)"},{n:4,l:"B2",tint:"rgba(40,120,255,.3)"},{n:5,l:"C1",sep:1,tint:"rgba(60,220,140,.3)"},{n:6,l:"C2",tint:"rgba(60,220,140,.3)"}],tag:"3 clipes soltos"}),vid({main:.2,mainTint:"rgba(255,120,40,.25)",frames:[{n:1,l:"A1",tint:"rgba(255,120,40,.3)"},{n:2,l:"A2",tint:"rgba(255,120,40,.3)"},{n:3,l:"B1",tint:"rgba(40,120,255,.3)"},{n:4,l:"B2",tint:"rgba(40,120,255,.3)"},{n:5,l:"C1",tint:"rgba(60,220,140,.3)"},{n:6,l:"C2",tint:"rgba(60,220,140,.3)"}],tag:"1 sequência"})],
+"Extract Last Frame":[vid({main:1,frames:[1,2,3,4,5,{n:6,hl:1}]}),C((x,w,h)=>{x.drawImage(sc(w,h,{t:1}),0,0);tag(x,"imagem · frame 6",6,6)})],
+"Extract Audio":[C((x,w,h)=>{bg(x,w,h,"#0b0c10");x.drawImage(sc(w,h*.64,{t:.4}),0,0);wave(x,w*.04,h*.7,w*.92,h*.24,"#5ED38E")}),C((x,w,h)=>{bg(x,w,h,"#0b0c10");wave(x,w*.04,h*.2,w*.92,h*.6,"#5ED38E");tag(x,"áudio · 00:10",6,6)})],
+"Flip Video":[vid({main:.3}),vid({main:.3,fx:flipC,tag:"espelhado"})],
+"Adjust Video EQ":[vid({main:.4,fx:dull,tag:"LED a 60%"}),vid({main:.4,fx:vivid,tag:"compensado"})],
+"Video Color Match":[vid({main:.3,fx:warm,frames:[{n:1,l:"A"},{n:2,l:"A"},{n:3,l:"A"},{n:4,l:"B",tint:"rgba(40,90,255,.45)"},{n:5,l:"B",tint:"rgba(40,90,255,.45)"},{n:6,l:"B",tint:"rgba(40,90,255,.45)"}],tag:"2 modelos, 2 cores"}),vid({main:.3,fx:warm,frames:[{n:1,l:"A"},{n:2,l:"A"},{n:3,l:"A"},{n:4,l:"B"},{n:5,l:"B"},{n:6,l:"B"}],tag:"cor igualada"})],
+"Add Color Curves":[vid({main:.4}),vid({main:.4,fx:curves,tag:"teal & orange"})],
+"Add Film Grain":[C((x,w,h)=>{const c=cv(w,h),y=c.getContext("2d"),g=y.createRadialGradient(w*.5,h*.3,0,w*.5,h*.3,w*.8);g.addColorStop(0,"#3a1a55");g.addColorStop(1,"#050510");y.fillStyle=g;y.fillRect(0,0,w,h);x.drawImage(post(c,22),0,0);tag(x,"banding no degradê",6,6)}),C((x,w,h)=>{const c=cv(w,h),y=c.getContext("2d"),g=y.createRadialGradient(w*.5,h*.3,0,w*.5,h*.3,w*.8);g.addColorStop(0,"#3a1a55");g.addColorStop(1,"#050510");y.fillStyle=g;y.fillRect(0,0,w,h);x.drawImage(grain(post(c,22),34),0,0);tag(x,"grão disfarça",6,6)})],
+"Add RGB Shift":[vid({main:.5}),vid({main:.5,fx:rgbs,tag:"glitch RGB"})],
+"Add Vignette":[vid({main:.5}),vid({main:.5,fx:vign,tag:"vinheta"})],
+"Add Overlay":[vid({main:.5}),vid({main:.5,fx:overlayLogo,tag:"logo + lower third"})],
+"Adjust Mask Size":[C((x,w,h)=>{x.drawImage(maskC(w,h,"v"),0,0);x.save();artistPath(x,w,h,.38);x.strokeStyle="#ff3b5c";x.lineWidth=1.5;x.stroke();x.restore();tag(x,"justa: corta no movimento",6,6)}),C((x,w,h)=>{bg(x,w,h,"#000");x.save();artistPath(x,w,h,.38);x.fillStyle="#fff";x.strokeStyle="#fff";x.lineWidth=h*.05;x.lineJoin="round";x.fill();x.stroke();x.restore();x.save();artistPath(x,w,h,.38);x.strokeStyle="#ff3b5c";x.lineWidth=1.5;x.stroke();x.restore();tag(x,"+6 px de folga",6,6)})],
+"Combine Masks Video":[C((x,w,h)=>{bg(x,w,h);const n=4,g=w*.02,fw=(w-g*(n+1))/n,fh=fw*.75;["v","g"].forEach((who,r)=>{const Y=h*.14+r*(fh+h*.16);txt(x,who==="v"?"vocal":"guitarra",g,Y-h*.05,h*.05,"#cfd6de");for(let i=0;i<n;i++)x.drawImage(maskC(fw,fh,who),g+i*(fw+g),Y)})}),C((x,w,h)=>{bg(x,w,h);const n=4,g=w*.02,fw=(w-g*(n+1))/n,fh=fw*.75,Y=(h-fh)/2;for(let i=0;i<n;i++)x.drawImage(maskC(fw,fh,"vg"),g+i*(fw+g),Y);tag(x,"máscara única no clipe",6,6)})],
+
+/* ---------- agents e modelos ---------- */
+"Agent":[D(`${mu("briefing.txt")}\nAbertura do festival, 5 músicas, clima noturno tropical, cores da marca laranja e azul, telão 21:9.`),D(`{\n ${k('"prompts"')}: [\n  ${st('"palco sob chuva neon…"')},\n  ${st('"floresta tropical…"')},\n  ${st('"praia ao luar…"')},\n  ${mu("+2 itens")}\n ]\n}`)],
+"Ruleset":[D(`${mu("sem regras")}\n${st('"Cena de show com letreiro ')}${del("'NOVA'")}${st(', ')}${del("4:3")}${st(', tons ')}${del("verde")}${st('"')}`),D(`${mu("com Ruleset")}\n${st('"Cena de show sem texto, ')}${ad("16:9")}${st(', tons ')}${ad("laranja e azul")}${st('"')}\n\n${mu("regras: 16:9 · sem texto · paleta da marca")}`)],
+"Ruleset List":[D(`${ch("marca")} ${mu("3 regras")}\n${ch("LED")} ${mu("2 regras")}\n\n${mu("dois conjuntos soltos")}`),D(`${ch("marca + LED","hl")}\n· paleta laranja/azul\n· sem texto na imagem\n· logo só no fim\n· 21:9, 5040×2160\n· pretos acima de 8%`)],
+"OpenAI Prompt":[D(`<span class="nbx"><b>Agent</b>${mu("modelo: não definido")}</span>${del("sem modelo, não executa")}`),D(`<span class="nbx"><b>OpenAI Prompt</b>${mu("modelo GPT")}</span>↓\n<span class="nbx"><b>Agent</b>modelo: ${ad("OpenAI")}</span>`)],
+"Anthropic Prompt":[D(`<span class="nbx"><b>Agent</b>${mu("modelo: não definido")}</span>${del("sem modelo, não executa")}`),D(`<span class="nbx"><b>Anthropic Prompt</b>${mu("modelo Claude")}</span>↓\n<span class="nbx"><b>Agent</b>modelo: ${ad("Claude")}</span>`)],
+"Grok Prompt":[D(`<span class="nbx"><b>Agent</b>modelo: OpenAI</span>${mu("ideia de cena:")}\n“palco com luzes azuis”`),D(`<span class="nbx"><b>Agent</b>modelo: ${ad("Grok")}</span>${mu("ideia de cena:")}\n“palco engolido por uma onda de luz azul”`)],
+"Groq Prompt":[D(`<span class="nbx"><b>Agent</b>modelo padrão</span>20 variações de prompt\n${nu("⏱ 38 s")}`),D(`<span class="nbx"><b>Agent</b>modelo via ${ad("Groq")}</span>20 variações de prompt\n${ad("⏱ 4 s")}`)],
+"Cohere Prompt":[D(`${mu("12 textos de referência soltos")}\n“turnê 2025…”\n“matéria sobre o show…”\n“release da marca…”`),D(`${mu("com Cohere")}\n${ch("estética","hl")} 5 textos\n${ch("técnico")} 4 textos\n${ch("marca")} 3 textos`)],
+"Griptape Cloud Prompt":[D(`<span class="nbx"><b>Agent</b>${mu("modelo: OpenAI")}</span>${del("erro: chave de API ausente")}`),D(`<span class="nbx"><b>Agent</b>modelo: ${ad("Griptape Cloud")}</span>${ad("executa com créditos da conta")}`)],
+"OpenAI Image":[ph("Generate Image<br>modelo: não definido"),C((x,w,h)=>{x.drawImage(sc(w,h,{v:"forest"}),0,0);tag(x,"OpenAI Image",6,6)})],
+"Grok Image":[C((x,w,h)=>{x.drawImage(sc(w,h,{v:"forest"}),0,0);tag(x,"modelo A",6,6)}),C((x,w,h)=>{x.drawImage(curves(vivid(sc(w,h,{v:"forest"}))),0,0);tag(x,"Grok Image",6,6)})],
+"Griptape Cloud Image":[ph("Generate Image<br>erro: chave de API ausente"),C((x,w,h)=>{x.drawImage(sc(w,h,{v:"forest"}),0,0);tag(x,"Griptape Cloud",6,6)})],
+
+/* ---------- JSON ---------- */
+"JSON Input":[D(`${mu("anotação solta")}\nshow: Nova\n5 músicas, 25 min\npaleta laranja e azul`),D(`{\n ${k('"show"')}: ${st('"Nova"')},\n ${k('"musicas"')}: ${nu("5")},\n ${k('"minutos"')}: ${nu("25")},\n ${k('"paleta"')}: [${st('"laranja"')}, ${st('"azul"')}]\n}`)],
+"Display JSON":[ph("{…} · 1 objeto<br>sem prévia"),D(`{\n ${k('"prompts"')}: [\n  ${st('"palco sob chuva neon"')},\n  ${st('"floresta tropical"')},\n  ${st('"praia ao luar"')}\n ],\n ${k('"formato"')}: ${st('"21:9"')}\n}`)],
+"JSON Extract Value":[D(`${mu("caminho: prompts[2]")}\n{ ${k('"prompts"')}: [\n  ${st('"palco sob chuva"')},\n  ${st('"floresta tropical"')},\n  ${hl(st('"praia ao luar"'))},\n  ${st('"deserto rosa"')} ] }`),D(`${mu("valor extraído")}\n\n${st('"praia ao luar"')}\n\n${mu("→ Generate Image da cena 3")}`)],
+"JSON Find":[D(`${mu("buscar: paleta = fogo")}\n[{${k("musica")}:1, ${k("paleta")}:${st('"mar"')}},\n {${k("musica")}:2, ${k("paleta")}:${st('"neon"')}},\n {${k("musica")}:4, ${k("paleta")}:${st('"fogo"')}},\n {${k("musica")}:5, ${k("paleta")}:${st('"mar"')}}]`),D(`${mu("encontrado")}\n\n{${k("musica")}: ${hl(nu("4"))}, ${k("paleta")}: ${st('"fogo"')}}`)],
+"JSON Replace":[D(`${k('"cena1"')}: ${del('"1920x1080"')}\n${k('"cena2"')}: ${del('"1920x1080"')}\n${k('"cena3"')}: ${del('"1920x1080"')}`),D(`${k('"cena1"')}: ${ad('"3840x1080"')}\n${k('"cena2"')}: ${ad('"3840x1080"')}\n${k('"cena3"')}: ${ad('"3840x1080"')}`)],
+"To JSON":[D(`${mu("dict")}\nestilo    neon\nresolucao 5040x2160\nduracao   30\nmodelo    seedance`),D(`{\n ${k('"estilo"')}: ${st('"neon"')},\n ${k('"resolucao"')}: ${st('"5040x2160"')},\n ${k('"duracao"')}: ${nu("30")},\n ${k('"modelo"')}: ${st('"seedance"')}\n}`)],
+
+/* ---------- listas ---------- */
+"Create List":[D(`${mu("arquivos soltos")}\n   clip_c.mp4\nclip_a.mp4      clip_e.mp4\n      clip_b.mp4\n  clip_d.mp4`),D(`${mu("lista ordenada")}\n${ch("0")} clip_a.mp4\n${ch("1")} clip_b.mp4\n${ch("2")} clip_c.mp4\n${ch("3")} clip_d.mp4\n${ch("4")} clip_e.mp4`)],
+"Create Text List":[D(`${mu("setlist digitado")}\nAbertura\nMaré\nNeon\nFogo\nEncerramento`),D(`[${st('"Abertura"')}, ${st('"Maré"')}, ${st('"Neon"')}, ${st('"Fogo"')}, ${st('"Encerramento"')}]\n\n${mu("5 itens · texto")}`)],
+"Create Int List":[D(`${mu("durações por cena (s)")}\n30, 45, 60, 45, 90`),D(`[${nu("30")}, ${nu("45")}, ${nu("60")}, ${nu("45")}, ${nu("90")}]\n\n${mu("5 itens · inteiro")}`)],
+"Create Float List":[D(`${mu("velocidade por cena")}\nmetade, normal, um pouco rápido`),D(`[${nu("0.5")}, ${nu("1.0")}, ${nu("1.25")}]\n\n${mu("→ Change Speed")}`)],
+"Create Bool List":[D(`${mu("logo do patrocinador?")}\ncena 1 sim · cena 2 não · cena 3 sim`),D(`[${ad("true")}, ${nu("false")}, ${ad("true")}]`)],
+"Display List":[ph("lista · 5 itens<br>sem prévia"),D(`${ch("0")} palco sob chuva\n${ch("1")} floresta tropical\n${ch("2")} praia ao luar\n${ch("3")} deserto rosa\n${ch("4")} céu de fogos`)],
+"Get From List":[D(`${mu("índice: 2")}\n${ch("Abertura")}${ch("Maré")}${ch("Neon","hl")}${ch("Fogo")}${ch("Fim")}`),D(`${mu("item")}\n${big(st('"Neon"'))}`)],
+"Get Index Of Item":[D(`${mu('procurar: "Encerramento"')}\n${ch("Abertura")}${ch("Maré")}${ch("Neon")}${ch("Fogo")}${ch("Encerramento","hl")}`),D(`${mu("posição")}\n${big(nu("4"))}`)],
+"Get List Contains Item":[D(`${mu('tem "Marca X"?')}\n${ch("Marca Y")}${ch("Marca X","hl")}${ch("Marca Z")}`),D(`${mu("resultado")}\n${big(ad("true"))}`)],
+"Get List Is Empty":[D(`${mu("prompts vindos do Agent")}\n\n[ ]`),D(`${mu("vazia?")}\n${big(ad("true"))}${del("geração bloqueada")}`)],
+"Get List Length":[D(`${ch("cena 1")}${ch("cena 2")}${ch("cena 3")}${ch("cena 4")}${ch("cena 5")}${ch("cena 6")}`),D(`${mu("tamanho")}\n${big(nu("6"))}${mu("× 30 s = 3 min")}`)],
+"Add To List":[D(`${ch("Abertura")}${ch("Maré")}${ch("Neon")}${ch("Fogo")}${ch("Fim")}`),D(`${ch("Abertura")}${ch("Maré")}${ch("Neon")}${ch("Fogo")}${ch("Fim")}${ch("Bis","add")}`)],
+"Remove From List":[D(`${ch("Abertura")}${ch("Maré")}${ch("Neon","del")}${ch("Fogo")}${ch("Fim")}\n\n${mu("Neon cortada no dia")}`),D(`${ch("Abertura")}${ch("Maré")}${ch("Fogo")}${ch("Fim")}`)],
+"Replace In List":[D(`${ch("prompt 1")}${ch("prompt 2","del")}${ch("prompt 3")}\n\n${del("prompt 2 reprovado")}`),D(`${ch("prompt 1")}${ch("prompt 2 v2","add")}${ch("prompt 3")}`)],
+"Combine Lists":[D(`${mu("ato 1")}\n${ch("A")}${ch("B")}${ch("C")}\n${mu("ato 2")}\n${ch("D")}${ch("E")}`),D(`${ch("A")}${ch("B")}${ch("C")}${ch("D")}${ch("E")}\n\n${mu("show inteiro")}`)],
+"Split List":[D(`${mu("20 prompts")}\n${seq(1,20).map(i=>ch(i)).join("")}`),D(`${mu("lote 1")}\n${seq(1,10).map(i=>ch(i)).join("")}\n${mu("lote 2")}\n${seq(11,20).map(i=>ch(i)).join("")}`)],
+"Select From List":[D(`${ch("cena 1 ✓","add")}${ch("cena 2 ✗")}${ch("cena 3 ✓","add")}${ch("cena 4 ✗")}${ch("cena 5 ✓","add")}`),D(`${mu("aprovadas")}\n${ch("cena 1")}${ch("cena 3")}${ch("cena 5")}`)],
+
+/* ---------- dicionários ---------- */
+"Dict":[D(`${mu("valores soltos")}\nneon   5040x2160\n   30   laranja/azul`),D(`{\n ${k("estilo")}: ${st('"neon"')},\n ${k("resolucao")}: ${st('"5040x2160"')},\n ${k("duracao")}: ${nu("30")},\n ${k("paleta")}: ${st('"laranja/azul"')}\n}`)],
+"Display Dict":[ph("dict · 4 chaves<br>sem prévia"),D(`${k("estilo")}     neon\n${k("resolucao")}  5040x2160\n${k("duracao")}    30 s\n${k("paleta")}     laranja/azul`)],
+"Key Value Pair":[D(`${mu("chave")}  resolucao\n${mu("valor")}  3840x1080`),D(`{ ${k("resolucao")}: ${st('"3840x1080"')} }`)],
+"Merge Key Value Pairs":[D(`{${k("estilo")}: ${st('"neon"')}}\n{${k("duracao")}: ${nu("30")}}\n{${k("paleta")}: ${st('"fogo"')}}`),D(`{\n ${k("estilo")}: ${st('"neon"')},\n ${k("duracao")}: ${nu("30")},\n ${k("paleta")}: ${st('"fogo"')}\n}`)],
+
+/* ---------- texto ---------- */
+"Text Input":[ph("campo vazio"),D(`${mu("estética")}\n${st('"cyberpunk tropical, neon laranja, chuva fina"')}`)],
+"Display Text":[ph("texto no fio<br>sem prévia"),D(`${st('"cyberpunk tropical, neon laranja, câmera baixa, contraluz, travelling lento, 21:9"')}`)],
+"Load Text":[fileI("briefing.txt","2 KB · texto","#F2B84B"),D(`Show de abertura do festival Nova. Clima noturno tropical, cores da marca laranja e azul. Telão central 21:9 e dois laterais…`)],
+"Save Text":[D(`${st('"palco sob chuva neon…"')}\n${st('"floresta tropical…"')}\n${st('"praia ao luar…"')}`),fileI("prompts_aprovados.txt","3 prompts","#F2B84B")],
+"Merge Texts":[D(`${ch("estética")} cyberpunk tropical\n${ch("câmera")} câmera baixa\n${ch("luz")} contraluz neon\n${ch("movimento")} travelling lento`),D(`${st('"cyberpunk tropical, câmera baixa, contraluz neon, travelling lento"')}\n\n${mu("1 prompt")}`)],
+"Search Replace Text":[C((x,w,h)=>{x.drawImage(eq(sc(w,h),40,.9,.8),0,0);tag(x,'prompt: "…de dia…"',6,6)}),C((x,w,h)=>{x.drawImage(tint(eq(sc(w,h),-30,1,1),"#1a2a8a",.5),0,0);tag(x,'prompt: "…de noite…"',6,6)})],
+"Random Text":[D(`${mu("opções de câmera")}\n${ch("travelling")}${ch("dolly in")}${ch("órbita")}${ch("drone")}`),D(`${mu("sorteado")}\n${big(st('"órbita"'))}`)],
+"Summarize Text":[D(`${mu("briefing · 10 páginas")}\n${"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n".repeat(7)}`),D(`${mu("resumo")}\n· show noturno, 5 músicas\n· paleta laranja e azul\n· telão 21:9 + 2 laterais\n· entrega em 1/11`)],
+"Evaluate Text Result":[D(`${st('"Palco com letreiro NOVA, formato 16:9, luz laranja"')}`),D(`${ad("✓")} 16:9\n${ad("✓")} paleta da marca\n${del("✗ contém texto (NOVA)")}\n\n${mu("nota 2/3 · refazer")}`)],
+"Search Web":[D(`${mu("busca")}\n${st('"turnê 2026 cenografia LED"')}`),D(`1. Matéria: telões curvos na turnê\n2. Vídeo do show em SP\n3. Entrevista do diretor de arte\n${mu("…")}`)],
+"Scrape Web":[D(`<span class="nbx"><b>festivalnova.com</b>${mu("☰ menu · banner · cookies")}</span>▬▬▬ ▬▬ ▬▬▬▬\n${mu("anúncio")}`),D(`${mu("texto extraído")}\nFestival Nova, 22/11, Palco Sul. Line-up: DJ Nova, Maré, Fogo Azul. Tema: noite tropical.`)],
+"Date and Time":[D(`${mu("nome do arquivo")}\ncena.png`),D(`${mu("com data")}\n${ad("2026-10-22")}_cena.png`)],
+
+/* ---------- números ---------- */
+"Int Input":[ph("largura do telão: —"),D(`${mu("largura (px)")}\n${big(nu("5040"))}`)],
+"Float Input":[C((x,w,h)=>{x.drawImage(sc(w,h),0,0);drawLogo(x,w*.82,h*.74,h*.1);tag(x,"opacidade 1.0",6,6)}),C((x,w,h)=>{x.drawImage(sc(w,h),0,0);drawLogo(x,w*.82,h*.74,h*.1,{a:.55});tag(x,"opacidade 0.55",6,6)})],
+"Bool Input":[vid({main:.5,tag:"grão: false"}),vid({main:.5,fx:s=>grain(s,60),tag:"grão: true"})],
+"Display Int":[ph("número no fio<br>sem prévia"),D(`${mu("altura calculada")}\n${big(nu("2160"))}${mu("px")}`)],
+"Display Float":[ph("número no fio<br>sem prévia"),D(`${mu("proporção 3840×1200")}\n${big(nu("3,2"))}${mu(": 1")}`)],
+"Math Operations":[D(`${mu("largura")} ${nu("5040")}\n${mu("operação")} ÷ 21 × 9`),D(`${big(nu("2160"))}<svg viewBox="0 0 210 92"><rect x="1" y="1" width="208" height="89" rx="3" fill="none" stroke="var(--acc)" stroke-width="2"/><text x="105" y="52" text-anchor="middle" fill="var(--mut)" font-family="IBM Plex Mono, monospace" font-size="16">5040 × 2160 · 21:9</text></svg>`)],
+"Askulator":[D(`${mu("pergunta")}\n“Quantos frames tem 2 min 30 s a 30 fps?”`),D(`${mu("resposta")}\n${big(nu("4500"))}${mu("150 s × 30")}`)],
+
+/* ---------- tools ---------- */
+"Tool List":[D(`<span class="nbx"><b>Agent</b>${mu("9 ferramentas conectadas")}</span>${del("Exceeded tool limit of 20 subtasks per task")}`),D(`<span class="nbx"><b>Agent</b>${mu("Tool List:")} Web Search, Calculator</span>${ad("✓ concluído em 6 subtarefas")}`)],
+"Calculator":[D(`${mu("Agent sem ferramenta")}\n“A altura deve ficar perto de ${del("2000 px")}.”`),D(`${mu("Agent + Calculator")}\n5040 ÷ 21 × 9 = ${ad("2160 px")}`)],
+"Date Time":[D(`${mu("Agent sem ferramenta")}\n“Faltam ${del("alguns dias")} para o show.”`),D(`${mu("Agent + Date Time")}\nHoje 22/10 · show 22/11\n${ad("faltam 31 dias")} · prévia em 01/11`)],
+"File Manager":[D(`${mu("Agent sem ferramenta")}\n“${del("Não tenho acesso")} à pasta de referências.”`),D(`${mu("Agent + File Manager")}\nrefs/\n ${ad("palco_2025.jpg")}\n ${ad("paleta_marca.png")}\n ${ad("led_mapa.pdf")}`)],
+"Info Retriever":[D(`${mu("Agent sem ferramenta")}\n“Exporte em ${del("qualquer formato de vídeo")}.”`),D(`${mu("Agent + Info Retriever")}\n“O media server pede ${ad("HAP Q, 30 fps")}.”\n${mu("fonte: manual técnico")}`)],
+"Web Search":[D(`${mu("Agent sem ferramenta")}\n“Tendências ${del("até o meu corte de dados")}…”`),D(`${mu("Agent + Web Search")}\n${ad("2026:")} telões curvos, LED transparente, conteúdo generativo ao vivo`)],
+"Web Scraper":[D(`${mu("Agent sem ferramenta")}\n“${del("Não consigo ler")} o link do rider.”`),D(`${mu("Agent + Web Scraper")}\nTelão: ${ad("5040×2160")}\nProcessador: ${ad("Novastar")}\nEntrada: ${ad("HDMI 2.0")}`)],
+
+/* ---------- execução ---------- */
+"Start Flow":[D(`<span class="nbx"><b>Text Input</b>${mu('fixo: "show tropical"')}</span>↓\n<span class="nbx"><b>Agent</b></span>`),D(`<span class="nbx"><b>Start Flow</b>tema = ${ad('"show de inverno"')}</span>↓\n<span class="nbx"><b>Agent</b></span>${mu("tema vem de fora a cada execução")}`)],
+"End Flow":[D(`<span class="nbx"><b>Save Video</b></span>↓\n${mu("fluxo termina sem devolver nada")}`),D(`<span class="nbx"><b>Save Video</b></span>↓\n<span class="nbx"><b>End Flow</b>resultado: ${ad("abertura.mp4")}</span>`)],
+"Reroute":[D(`<svg viewBox="0 0 160 118"><g fill="var(--panel)" stroke="var(--line)"><rect x="2" y="8" width="34" height="18" rx="3"/><rect x="2" y="50" width="34" height="18" rx="3"/><rect x="2" y="92" width="34" height="18" rx="3"/><rect x="124" y="8" width="34" height="18" rx="3"/><rect x="124" y="50" width="34" height="18" rx="3"/><rect x="124" y="92" width="34" height="18" rx="3"/></g><g fill="none" stroke-width="2"><path d="M36 17 C90 17 70 101 124 101" stroke="var(--t-json)"/><path d="M36 59 C90 59 70 17 124 17" stroke="var(--t-txt)"/><path d="M36 101 C90 101 70 59 124 59" stroke="var(--t-img)"/><path d="M36 17 C80 30 90 80 124 59" stroke="var(--t-vid)"/></g></svg>`),D(`<svg viewBox="0 0 160 118"><g fill="var(--panel)" stroke="var(--line)"><rect x="2" y="8" width="34" height="18" rx="3"/><rect x="2" y="50" width="34" height="18" rx="3"/><rect x="2" y="92" width="34" height="18" rx="3"/><rect x="124" y="8" width="34" height="18" rx="3"/><rect x="124" y="50" width="34" height="18" rx="3"/><rect x="124" y="92" width="34" height="18" rx="3"/></g><g fill="none" stroke-width="2"><path d="M36 17 H66 V36 H96 V101 H124" stroke="var(--t-json)"/><path d="M36 59 H70 V30 H100 V17 H124" stroke="var(--t-txt)"/><path d="M36 101 H104 V59 H124" stroke="var(--t-img)"/><path d="M36 21 H58 V72 H112 V63 H124" stroke="var(--t-vid)"/></g><g fill="var(--acc)"><circle cx="66" cy="36" r="3"/><circle cx="70" cy="30" r="3"/><circle cx="104" cy="59" r="3"/><circle cx="58" cy="72" r="3"/></g></svg>`)],
+"Note":[D(`<span class="nbx"><b>JSON Extract Value</b>prompts[2]</span>↓\n<span class="nbx"><b>Generate Image</b></span>${mu("ninguém sabe se já foi aprovado")}`),D(`<span class="nbx" style="background:var(--warn-soft);border-color:var(--warn)"><b>Nota</b>Cena 3 aprovada pelo cliente em 20/10</span><span class="nbx"><b>JSON Extract Value</b>prompts[2]</span>`)],
+
+/* ---------- áudio e 3D ---------- */
+"Load Audio":[fileI("abertura.wav","03:42 · 48 kHz","#5ED38E"),C((x,w,h)=>{bg(x,w,h,"#0b0c10");wave(x,w*.04,h*.2,w*.92,h*.6,"#5ED38E",5);tag(x,"áudio no fluxo",6,6)})],
+"Microphone":[C((x,w,h)=>{bg(x,w,h,"#0b0c10");x.fillStyle="#3a404a";x.fillRect(w*.04,h*.5-1,w*.92,2);tag(x,"aguardando",6,6)}),C((x,w,h)=>{bg(x,w,h,"#0b0c10");wave(x,w*.04,h*.2,w*.92,h*.6,"#ff5f6d",9);x.fillStyle="#ff3b3b";x.beginPath();x.arc(w*.06,h*.09,h*.025,0,7);x.fill();txt(x,"REC 00:48",w*.1,h*.09,h*.05,"#fff")})],
+"Transcribe Audio":[C((x,w,h)=>{bg(x,w,h,"#0b0c10");wave(x,w*.04,h*.2,w*.92,h*.6,"#5ED38E",5)}),D(`${mu("00:12")} “a maré sobe e acende a cidade”\n${mu("00:19")} “luz laranja no meu horizonte”\n${mu("00:27")} “dança comigo até amanhecer”`)],
+"Load 3D":[fileI("palco.glb","3D · 12 MB","#D9A16B"),C((x,w,h)=>{bg(x,w,h,"#0d1117");const P=(X,Y,Z)=>[w/2+(X-Z)*w*.24,h*.6+(X+Z)*h*.14-Y*h*.42];const poly=(pts,f,s)=>{x.beginPath();pts.forEach((p,i)=>{const q=P(...p);i?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1])});x.closePath();if(f){x.fillStyle=f;x.fill()}x.strokeStyle=s||"#3ED2BB";x.lineWidth=1.2;x.stroke()};
+  for(let i=-1;i<=1.001;i+=.25){x.strokeStyle="rgba(62,210,187,.25)";x.beginPath();let a=P(i,0,-1),b=P(i,0,1);x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);a=P(-1,0,i);b=P(1,0,i);x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke()}
+  poly([[-1,0,-1],[1,0,-1],[1,0,1],[-1,0,1]]);poly([[-.7,.18,-1],[.7,.18,-1],[.7,.8,-1],[-.7,.8,-1]],"rgba(255,106,43,.45)","#ff8a3d");poly([[-1,.18,-.65],[-1,.18,.1],[-1,.62,.1],[-1,.62,-.65]],"rgba(214,36,122,.4)","#f06aae");poly([[-.5,0,-.6],[.5,0,-.6],[.5,.08,-.6],[-.5,.08,-.6]],null,"#cfd6de");tag(x,"3D · palco",6,6)})]
+};
+</script>
+<script>
+const TIPOS={img:"imagem",vid:"vídeo",txt:"texto",json:"json",list:"lista",dict:"dict",num:"número",bool:"bool",mask:"máscara",aud:"áudio",ia:"modelo/IA",any:"qualquer",file:"arquivo",d3:"3D"};
+const TCOR={img:"--t-img",vid:"--t-vid",txt:"--t-txt",json:"--t-json",list:"--t-list",dict:"--t-dict",num:"--t-num",bool:"--t-bool",mask:"--t-mask",aud:"--t-aud",ia:"--t-ia",any:"--t-any",file:"--t-any",d3:"--t-3d"};
+
+// [nome, "entradas>saídas", função, exemplo, cadeia]
+const CATS=[
+{id:"imagem",nome:"Imagem",cor:"--t-img",desc:"Importar, compor, recortar, ajustar cor e gerar imagens. A base de quase todo fluxo de arte para telão.",nodes:[
+["Load Image","file>img","Carrega uma imagem de arquivo.","Importar o key visual 3840×2160 do show para servir de base a todo o fluxo do telão.","Load Image → Rescale Image → Save Image"],
+["Save Image","img>file","Salva a imagem processada.","Exportar o frame final como PNG com alpha, nomeado por cena (cena03_led_central.png), pronto para o media server.","Image Blend Compositor → Save Image"],
+["Display Image","img>","Exibe a imagem no canvas.","Conferir no meio do fluxo se o logo ficou centralizado antes de gastar créditos gerando vídeo.","Image Blend Compositor → Display Image"],
+["Generate Image","txt,ia>img","Gera imagens com o modelo de IA configurado.","Gerar o fundo de floresta neon do painel lateral a partir de um prompt montado em blocos.","Merge Texts → Generate Image → Save Image"],
+["Describe Image","img,ia>txt","Descreve uma imagem em texto usando IA.","Descrever a foto de referência do cliente e usar o texto como prompt para gerar variações coerentes.","Load Image → Describe Image → Generate Image"],
+["Rescale Image","img,num>img","Redimensiona proporcionalmente, por pixels ou percentual. Não é super-resolução.","Reduzir um frame 3840×2160 para 1920×1080 antes de mandar a um modelo de vídeo que só aceita Full HD.","Load Image → Rescale Image → Save Image"],
+["Crop Image","img>img","Recorta uma região da imagem.","Cortar a área central 1:1 de um painel panorâmico para virar post de divulgação do evento.","Load Image → Crop Image → Save Image"],
+["Extend Canvas","img>img","Aumenta o canvas sem inventar conteúdo (não é outpainting).","Levar uma arte 16:9 para um telão 21:9 com margens transparentes, que depois são preenchidas no After Effects.","Load Image → Extend Canvas → Save Image"],
+["Flip Image","img>img","Espelha na horizontal ou na vertical.","Criar a versão espelhada de um elemento para os dois telões laterais simétricos do palco.","Load Image → Flip Image → Save Image"],
+["Invert Image","img>img","Inverte os valores de cor.","Transformar um logo preto em branco para aparecer sobre o fundo escuro do LED.","Load Image → Invert Image → Save Image"],
+["Image Blend Compositor","img,img,num>img","Sobrepõe duas imagens com modo de mesclagem, opacidade e deslocamento.","Aplicar o logo RGBA do patrocinador sobre o cenário com 85% de opacidade, deslocado para o canto inferior direito.","Load Image → Image Blend Compositor → Save Image"],
+["Image Bash","img>img","Monta várias imagens numa composição única. Não integra os elementos numa cena realista.","Juntar floresta, palco e referência de LEDs num moodboard único para entregar a um modelo multimodal.","Load Image → Image Bash → Describe Image"],
+["Merge Images","img>img","Combina múltiplas imagens numa saída.","Unir quatro variações geradas num único arquivo para o cliente aprovar de uma vez.","Generate Image → Merge Images → Save Image"],
+["Image Grid Splitter","img>img,list","Separa os elementos de um grid em imagens individuais.","Separar um grid 2×2 gerado pela IA em quatro frames, cada um animado depois como uma cena.","Generate Image → Image Grid Splitter → Save Image"],
+["Display Image Grid","img,list>","Mostra várias imagens em grade.","Ver lado a lado as cinco versões de um prompt para escolher a que vai ao telão.","Generate Image → Display Image Grid"],
+["Compare Images","img,img>","Facilita a comparação entre duas imagens.","Comparar antes e depois do Color Match para validar se a pele do artista ficou natural.","Color Match → Compare Images"],
+["Add Text to Existing Image","img,txt>img","Insere texto sobre a imagem.","Escrever o nome da atração e o horário no frame de abertura exibido antes do show.","Text Input → Add Text to Existing Image → Save Image"],
+["Add Bounding Boxes","img,json>img","Desenha caixas delimitadoras.","Marcar a área de cada painel de LED sobre a planta do palco para revisar o mapeamento de pixels.","Load Image → Add Bounding Boxes → Display Image"],
+["Adjust Image EQ","img>img","Ajusta brilho, contraste, saturação e outras características tonais.","Aumentar saturação e brilho de uma arte que ficaria apagada num LED operando a 60% de brilho.","Load Image → Adjust Image EQ → Save Image"],
+["Adjust Image Levels","img>img","Modifica níveis e contraste.","Abrir os pretos de um frame escuro que sumia no telão durante o ensaio.","Load Image → Adjust Image Levels → Save Image"],
+["Bloom Effect","img>img","Cria halos nas áreas mais luminosas.","Dar brilho aos letreiros neon de uma cena gerada antes de animá-la.","Generate Image → Bloom Effect → Save Image"],
+["Color Match","img,img>img","Aproxima as cores de uma imagem às de uma referência.","Fazer as cinco cenas geradas por IA herdarem a paleta da cena que o cliente já aprovou.","Generate Image → Color Match → Save Image"],
+["Extract Key Colors","img,num>txt,list","Extrai a paleta de cores dominantes (ex.: valores hex). Não recolore a imagem.","Tirar as 5 cores do pôster do festival e incluir os hex no prompt das próximas gerações.","Load Image → Extract Key Colors → Merge Texts"],
+["Create Color Bars","num>img","Gera barras de cor de referência.","Gerar barras na resolução exata do telão para calibrar o processador de LED antes do show.","Create Color Bars → Save Image"],
+["Gaussian Edge Fade","img>img","Suaviza gradualmente as bordas.","Esfumar as bordas de uma imagem para ela se fundir ao preto do telão sem corte duro.","Gaussian Edge Fade → Image Blend Compositor"],
+["Apply Mask","img,mask>img","Aplica uma máscara existente para gerar transparência.","Recortar o artista com uma máscara de segmentação e exportar PNG RGBA para compor sobre o cenário.","Paint Mask → Apply Mask → Save Image"],
+["Paint Mask","img>mask","Cria ou edita uma máscara manualmente.","Pintar à mão a área do céu que vai receber um novo fundo gerado.","Load Image → Paint Mask → Apply Mask"],
+["Invert Mask","mask>mask","Inverte uma máscara.","Trocar o recorte do artista pelo recorte do fundo para aplicar efeito só no cenário.","Paint Mask → Invert Mask → Apply Mask"],
+["Combine Masks","mask,mask>mask","Combina duas ou mais máscaras.","Somar as máscaras do vocalista e do guitarrista num único recorte da banda.","Paint Mask → Combine Masks → Apply Mask"],
+["Display Mask","mask>","Exibe uma máscara.","Conferir se a máscara pegou os fios de cabelo antes de compor.","Paint Mask → Display Mask"],
+["Display Channel","img>","Mostra canais individuais (R, G, B, alpha).","Inspecionar o alpha de um logo para descobrir por que aparece uma borda branca no LED.","Load Image → Display Channel"],
+["Webcam","none>img","Captura a imagem de uma câmera conectada.","Capturar um frame da câmera de ensaio e testar a composição com o cenário ao vivo.","Webcam → Image Blend Compositor → Display Image"]
+]},
+{id:"video",nome:"Vídeo",cor:"--t-vid",desc:"Tratar, montar e exportar clipes. Estes nodes processam mídia; modelos como Kling e Seedance vêm de integrações separadas.",nodes:[
+["Load Video","file>vid","Importa um arquivo de vídeo.","Trazer o loop de fundo .mp4 do telão principal para tratamento.","Load Video → Resize Video → Save Video"],
+["Save Video","vid>file","Exporta o vídeo processado.","Exportar o loop final com cena e resolução no nome do arquivo (abertura_5040x2160.mp4).","Concatenate Videos → Save Video"],
+["Display Video","vid>","Mostra o vídeo no canvas.","Rever o clipe gerado pela IA no próprio canvas antes de concatenar.","Load Video → Display Video"],
+["Resize Video","vid,num>vid","Redimensiona os frames do vídeo.","Ajustar o clipe aos 1920×1080 exigidos pelo media server do evento.","Load Video → Resize Video → Save Video"],
+["Change Speed","vid,num>vid","Altera a velocidade de reprodução.","Deixar um loop de partículas a 50% para acompanhar a música lenta da abertura.","Load Video → Change Speed → Save Video"],
+["Reverse Video","vid>vid","Inverte a sequência no tempo.","Criar um loop sem emenda juntando o clipe com a versão reversa dele (ping-pong).","Reverse Video → Concatenate Videos → Save Video"],
+["Hold Video Frames","vid,num>vid","Prolonga ou congela frames.","Segurar o último frame do logo por 3 segundos no fim da vinheta.","Load Video → Hold Video Frames → Save Video"],
+["Split Video","vid>vid,list","Divide o vídeo em trechos.","Cortar a gravação do ensaio em um trecho por música do setlist.","Load Video → Split Video → Save Video"],
+["Concatenate Videos","vid,list>vid","Une clipes em sequência.","Juntar cinco clipes de 5 s gerados por IA numa sequência de 25 s para a abertura.","Video Color Match → Concatenate Videos → Save Video"],
+["Extract Last Frame","vid>img","Retira o último frame de um vídeo.","Usar o último frame do clipe 1 como imagem inicial do clipe 2 no modelo de vídeo, mantendo a continuidade.","Load Video → Extract Last Frame → Save Image"],
+["Extract Audio","vid>aud","Separa o áudio do vídeo.","Separar a trilha de um vídeo de referência para transcrever a letra.","Load Video → Extract Audio → Transcribe Audio"],
+["Flip Video","vid>vid","Espelha o vídeo.","Gerar versões espelhadas para os telões laterais esquerdo e direito.","Load Video → Flip Video → Save Video"],
+["Adjust Video EQ","vid>vid","Ajusta propriedades tonais e de cor.","Subir brilho e saturação para compensar um LED regulado em 60%.","Load Video → Adjust Video EQ → Save Video"],
+["Video Color Match","vid,vid>vid","Harmoniza as cores entre vídeos.","Igualar clipes de modelos diferentes para que pareçam o mesmo filme.","Load Video → Video Color Match → Concatenate Videos"],
+["Add Color Curves","vid>vid","Aplica curvas de cor.","Dar o mesmo look teal & orange a todo o pacote de vídeos do evento.","Load Video → Add Color Curves → Save Video"],
+["Add Film Grain","vid>vid","Acrescenta granulação.","Usar granulação leve para disfarçar banding em degradês escuros no LED.","Load Video → Add Film Grain → Save Video"],
+["Add RGB Shift","vid>vid","Desloca os canais RGB.","Criar um glitch de aberração cromática na troca entre DJs.","Load Video → Add RGB Shift → Save Video"],
+["Add Vignette","vid>vid","Insere vinheta.","Escurecer as bordas para levar o olhar ao centro do telão durante a fala do apresentador.","Load Video → Add Vignette → Save Video"],
+["Add Overlay","vid,img>vid","Sobrepõe elementos ao vídeo.","Colocar o logo do evento e um lower third sobre todos os clipes da noite.","Load Video → Add Overlay → Save Video"],
+["Adjust Mask Size","mask>mask","Expande ou contrai uma máscara.","Expandir a máscara do artista alguns pixels para não cortar o contorno em movimentos rápidos.","Adjust Mask Size → Combine Masks Video"],
+["Combine Masks Video","mask,mask>mask","Combina máscaras ao longo do vídeo.","Unir as máscaras de vários elementos para aplicar um efeito só neles durante todo o clipe.","Adjust Mask Size → Combine Masks Video"]
+]},
+{id:"ia",nome:"Agents e modelos",cor:"--t-ia",desc:"O Agent executa a tarefa. Os nodes de configuração escolhem o modelo e alimentam outros nodes, mas sozinhos não geram nada.",nodes:[
+["Agent","txt,ia,any>txt,json","Executa tarefas com modelo de linguagem, instruções, contexto e ferramentas.","Ler o briefing do show e devolver um JSON com 5 prompts de cena, um por música.","Text Input → Agent → JSON Extract Value"],
+["Ruleset","txt>ia","Define regras reutilizáveis.","Fixar regras de estilo (“16:9, sem texto na imagem, paleta laranja e azul”) para todos os Agents do projeto.","Ruleset → Agent"],
+["Ruleset List","ia>ia","Agrupa vários Rulesets.","Combinar as regras de marca do cliente com as regras técnicas do LED num conjunto só.","Ruleset → Ruleset List → Agent"],
+["OpenAI Prompt","none>ia","Configura um modelo de texto da OpenAI.","Usar um modelo GPT no Agent que escreve o roteiro das cenas.","OpenAI Prompt → Agent"],
+["Anthropic Prompt","none>ia","Configura um modelo da Anthropic.","Usar o Claude no Agent que transforma um briefing longo em prompts estruturados.","Anthropic Prompt → Agent"],
+["Grok Prompt","none>ia","Configura um modelo Grok.","Trocar o modelo do Agent e comparar o tom criativo das ideias de cena.","Grok Prompt → Agent"],
+["Groq Prompt","none>ia","Configura modelos servidos pela Groq.","Usar um modelo rápido para iterar dezenas de variações de prompt em segundos.","Groq Prompt → Agent"],
+["Cohere Prompt","none>ia","Configura modelos Cohere.","Resumir e classificar textos de referência do cliente.","Cohere Prompt → Agent"],
+["Griptape Cloud Prompt","none>ia","Configura um modelo pela Griptape Cloud.","Rodar o Agent com os créditos da Griptape Cloud, sem chave de API própria.","Griptape Cloud Prompt → Agent"],
+["OpenAI Image","none>ia","Configura um modelo de imagem da OpenAI.","Definir o modelo que o Generate Image usa nas peças do evento.","OpenAI Image → Generate Image"],
+["Grok Image","none>ia","Configura um modelo de imagem Grok.","Gerar a mesma cena com outro modelo para comparar a estética.","Grok Image → Generate Image → Compare Images"],
+["Griptape Cloud Image","none>ia","Configura geração de imagem pela Griptape Cloud.","Gerar imagens sem configurar chave de API, usando a conta da Griptape Cloud.","Griptape Cloud Image → Generate Image"]
+]},
+{id:"json",nome:"JSON",cor:"--t-json",desc:"Dados estruturados. É a ponte entre a resposta de um Agent e os nodes que consomem cada valor.",nodes:[
+["JSON Input","none>json","Introduz conteúdo JSON no fluxo.","Colar a ficha técnica do show (músicas, duração, paleta) como dados do fluxo.","JSON Input → JSON Extract Value"],
+["Display JSON","json>","Exibe o JSON.","Conferir a resposta estruturada do Agent antes de distribuir os valores.","Agent → Display JSON"],
+["JSON Extract Value","json,txt>any","Busca um valor por caminho, como prompts[0].","Pegar prompts[2] do JSON do Agent e mandar para o Generate Image da cena 3.","Agent → JSON Extract Value → Generate Image"],
+["JSON Find","json>any","Busca informações dentro da estrutura.","Achar na ficha técnica qual música usa a paleta “fogo”.","JSON Input → JSON Find → Display Text"],
+["JSON Replace","json>json","Substitui valores em JSON.","Trocar a resolução de todas as cenas de 1920×1080 para 3840×1080 num só lugar.","JSON Input → JSON Replace → Display JSON"],
+["To JSON","any>json","Converte dados para JSON.","Converter o dicionário de configurações da cena em JSON para salvar como preset.","Dict → To JSON → Save Text"]
+]},
+{id:"listas",nome:"Listas",cor:"--t-list",desc:"Sequências de itens, como setlists, lotes de prompts e durações por cena.",nodes:[
+["Create List","any>list","Monta uma lista.","Listar os cinco arquivos de clipe na ordem em que entram no show.","Create List → Get From List"],
+["Create Text List","txt>list","Cria uma lista de textos.","Guardar os nomes das músicas do setlist.","Create Text List → Get From List → Merge Texts"],
+["Create Int List","num>list","Cria uma lista de inteiros.","Guardar a duração em segundos de cada cena (30, 45, 60…).","Create Int List → Get From List"],
+["Create Float List","num>list","Cria uma lista de decimais.","Guardar a velocidade de cada cena (0.5, 1.0, 1.25) para o Change Speed.","Create Float List → Get From List → Change Speed"],
+["Create Bool List","bool>list","Cria uma lista de booleanos.","Marcar quais cenas levam o logo do patrocinador (true/false).","Create Bool List → Get From List"],
+["Display List","list>","Mostra os elementos da lista.","Revisar todos os prompts antes de disparar as gerações.","Create Text List → Display List"],
+["Get From List","list,num>any","Recupera um item pelo índice.","Pegar a 3ª música do setlist para montar o prompt da terceira cena.","Create Text List → Get From List → Merge Texts"],
+["Get Index Of Item","list,any>num","Encontra a posição de um item.","Descobrir em que posição do setlist está a música de encerramento.","Create Text List → Get Index Of Item → Display Int"],
+["Get List Contains Item","list,any>bool","Testa se um item existe na lista.","Verificar se um patrocinador está na lista de logos antes de compor.","Create Text List → Get List Contains Item"],
+["Get List Is Empty","list>bool","Testa se a lista está vazia.","Barrar a geração se a lista de prompts voltou vazia do Agent.","Get List Is Empty"],
+["Get List Length","list>num","Retorna o tamanho da lista.","Contar as cenas para calcular a duração total da apresentação.","Get List Length → Math Operations"],
+["Add To List","list,any>list","Adiciona um item.","Incluir a cena do bis no fim do setlist.","Create Text List → Add To List → Display List"],
+["Remove From List","list,any>list","Remove um item.","Tirar uma música cortada do setlist no dia do evento.","Create Text List → Remove From List → Display List"],
+["Replace In List","list,any>list","Substitui um item.","Trocar só o prompt da cena reprovada pelo cliente e manter os outros.","Create Text List → Replace In List → Display List"],
+["Combine Lists","list,list>list","Une listas.","Juntar as cenas do ato 1 e do ato 2 numa única ordem.","Create Text List → Combine Lists → Display List"],
+["Split List","list,num>list","Divide uma lista.","Dividir 20 prompts em dois lotes de 10 para não estourar o limite de geração.","Create Text List → Split List → Display List"],
+["Select From List","list>any","Seleciona elementos da lista.","Selecionar só as cenas aprovadas para exportar.","Create List → Select From List"]
+]},
+{id:"dict",nome:"Dicionários",cor:"--t-dict",desc:"Pares chave e valor. Servem para guardar o preset de cada cena num lugar só.",nodes:[
+["Dict","any>dict","Cria ou manipula um dicionário.","Guardar estilo, resolução, duração, paleta e modelo de uma cena num único objeto.","Dict → To JSON"],
+["Display Dict","dict>","Mostra o dicionário.","Revisar as configurações da cena antes de rodar o fluxo.","Dict → Display Dict"],
+["Key Value Pair","txt,any>dict","Forma um par chave e valor.","Criar o par resolucao: 3840x1080 a partir de um Text Input.","Key Value Pair → Merge Key Value Pairs"],
+["Merge Key Value Pairs","dict>dict","Reúne vários pares.","Montar o preset completo da cena juntando os pares de estilo, duração e paleta.","Key Value Pair → Merge Key Value Pairs → Display Dict"]
+]},
+{id:"texto",nome:"Texto",cor:"--t-txt",desc:"Prompts, arquivos de texto e pesquisa. O caminho mais comum é montar o prompt em blocos separados.",nodes:[
+["Text Input","none>txt","Insere texto.","Escrever o bloco de estética do prompt: “cyberpunk tropical, neon laranja”.","Text Input → Merge Texts"],
+["Display Text","txt>","Exibe texto.","Ler o prompt final montado antes de enviá-lo ao gerador.","Merge Texts → Display Text"],
+["Load Text","file>txt","Lê um arquivo de texto.","Carregar o briefing do cliente salvo em .txt.","Load Text → Agent"],
+["Save Text","txt>file","Grava texto em arquivo.","Salvar os prompts aprovados como documentação do projeto.","Agent → Save Text"],
+["Merge Texts","txt,txt>txt","Combina blocos de texto.","Juntar estética, câmera, luz e movimento num prompt único.","Text Input → Merge Texts → Generate Image"],
+["Search Replace Text","txt>txt","Substitui trechos de texto.","Trocar “dia” por “noite” em todos os prompts para gerar a versão noturna das cenas.","Merge Texts → Search Replace Text → Generate Image"],
+["Random Text","txt>txt","Escolhe ou gera um texto aleatório.","Sortear um movimento de câmera entre várias opções para variar as gerações.","Random Text → Merge Texts"],
+["Summarize Text","txt,ia>txt","Resume texto com IA.","Resumir um briefing de 10 páginas em 5 linhas antes de passar ao Agent.","Load Text → Summarize Text → Agent"],
+["Evaluate Text Result","txt,ia>txt","Avalia um texto resultante.","Checar se o prompt gerado cumpre as regras (16:9, sem texto na imagem).","Agent → Evaluate Text Result"],
+["Search Web","txt>txt","Pesquisa na web.","Buscar referências visuais da turnê atual do artista.","Search Web → Summarize Text → Agent"],
+["Scrape Web","txt>txt","Extrai o conteúdo de uma página.","Puxar o texto da página oficial do evento para o Agent usar como contexto.","Scrape Web → Agent"],
+["Date and Time","none>txt","Fornece data e hora.","Carimbar a data no nome dos arquivos exportados.","Date and Time → Merge Texts → Save Text"]
+]},
+{id:"numeros",nome:"Números",cor:"--t-num",desc:"Valores e contas para resolução, proporção, duração e opacidade.",nodes:[
+["Int Input","none>num","Entrada de número inteiro.","Definir a largura do telão: 5040 px.","Int Input → Math Operations"],
+["Float Input","none>num","Entrada de número decimal.","Definir a opacidade do logo em 0.85.","Float Input → Image Blend Compositor"],
+["Bool Input","none>bool","Entrada booleana.","Ligar ou desligar a etapa de granulação sem desconectar fios.","Bool Input → Create Bool List"],
+["Display Int","num>","Mostra um inteiro.","Ver a altura calculada para o telão.","Math Operations → Display Int"],
+["Display Float","num>","Mostra um decimal.","Ver a proporção 3,2 de um telão 3840×1200.","Math Operations → Display Float"],
+["Math Operations","num,num>num","Faz cálculos matemáticos.","Calcular a altura de um telão 21:9 com 5040 px de largura: 5040 ÷ 21 × 9 = 2160.","Int Input → Math Operations → Rescale Image"],
+["Askulator","txt,ia>num","Faz cálculos a partir de linguagem natural.","Perguntar “quantos frames tem 2 min 30 s a 30 fps?” e receber 4500.","Text Input → Askulator → Display Int"]
+]},
+{id:"tools",nome:"Tools para Agents",cor:"--t-ia",desc:"Ferramentas que o Agent pode usar. Dê só as necessárias: muitas ferramentas geram subtarefas demais.",nodes:[
+["Tool List","ia>ia","Agrupa as ferramentas oferecidas ao Agent.","Dar ao Agent só Web Search e Calculator para evitar o erro de limite de 20 subtarefas.","Web Search → Tool List → Agent"],
+["Calculator","none>ia","Cálculos como ferramenta.","O Agent calcula resolução e pixel pitch dos painéis a partir das medidas do palco.","Calculator → Tool List → Agent"],
+["Date Time","none>ia","Consulta de data e hora.","O Agent monta o cronograma de entregas contando os dias até o evento.","Date Time → Tool List → Agent"],
+["File Manager","none>ia","Operações sobre arquivos.","O Agent lista a pasta de referências e escolhe quais imagens usar.","File Manager → Tool List → Agent"],
+["Info Retriever","none>ia","Recuperação de informações.","O Agent consulta a documentação técnica do media server antes de sugerir o formato de exportação.","Info Retriever → Tool List → Agent"],
+["Web Search","none>ia","Pesquisa na web como ferramenta.","O Agent pesquisa tendências visuais de festivais do ano.","Web Search → Tool List → Agent"],
+["Web Scraper","none>ia","Extrai informações de páginas.","O Agent lê o rider técnico publicado no site da produtora.","Web Scraper → Tool List → Agent"]
+]},
+{id:"execucao",nome:"Execução",cor:"--t-any",desc:"Entrada, saída e organização do canvas.",nodes:[
+["Start Flow","none>any","Define a entrada do fluxo.","Receber o tema do show como parâmetro quando o fluxo é chamado de fora.","Start Flow → Agent"],
+["End Flow","any>","Indica o término do fluxo.","Devolver o caminho do vídeo final como resultado do fluxo.","Save Video → End Flow"],
+["Reroute","any>any","Reorganiza caminhos de conexão no canvas.","Organizar os fios que cruzam o canvas num fluxo com cinco ramos de prompt.","Agent → Reroute → JSON Extract Value"],
+["Note","none>","Documenta um trecho do workflow.","Anotar “Cena 3 aprovada pelo cliente em 20/10” ao lado do ramo correspondente.","Note"]
+]},
+{id:"audio3d",nome:"Áudio e 3D",cor:"--t-aud",desc:"Som, transcrição e conteúdo tridimensional.",nodes:[
+["Load Audio","file>aud","Importa áudio.","Importar a música da abertura para transcrever a letra.","Load Audio → Transcribe Audio"],
+["Microphone","none>aud","Capta áudio do microfone.","Gravar o diretor ditando o briefing direto no fluxo.","Microphone → Transcribe Audio → Agent"],
+["Transcribe Audio","aud>txt","Transcreve áudio em texto.","Transcrever a letra e gerar um prompt de cena por verso.","Load Audio → Transcribe Audio → Agent"],
+["Load 3D","file>d3","Carrega conteúdo 3D compatível.","Abrir o modelo 3D do palco para conferir a posição dos telões.","Load 3D"]
+]}
+];
+
+const WFS=[
+{t:"Moodboard de cenário",d:"Junta referências numa composição, ajusta o formato e salva uma base panorâmica para o telão.",n:["Load Image","Image Bash","Rescale Image","Extend Canvas","Save Image"]},
+{t:"Logo com transparência",d:"Aplica um logo RGBA sobre o cenário com opacidade e posição controladas.",n:["Load Image","Image Blend Compositor","Save Image"]},
+{t:"Paleta guiando a IA",d:"Extrai as cores da referência e coloca os valores no prompt da geração.",n:["Load Image","Extract Key Colors","Merge Texts","Generate Image","Save Image"]},
+{t:"Agent gera os prompts",d:"O Agent devolve um JSON com cinco prompts e cada ramo extrai um com prompts[0] a prompts[4].",n:["Text Input","Agent","JSON Extract Value","Generate Image","Color Match","Save Image"]},
+{t:"Recorte de artista",d:"Máscara pronta (pintada ou de segmentação) aplicada para exportar PNG com alpha.",n:["Load Image","Paint Mask","Apply Mask","Save Image"]},
+{t:"Sequência contínua de vídeo",d:"O último frame de um clipe vira o ponto de partida do próximo, e no fim tudo é igualado na cor.",n:["Load Video","Extract Last Frame","Save Image","Video Color Match","Concatenate Videos","Save Video"]},
+{t:"Loop ping-pong",d:"O clipe e a versão reversa unidos num loop sem emenda.",n:["Load Video","Reverse Video","Concatenate Videos","Save Video"]},
+{t:"Briefing falado vira cenas",d:"O áudio do diretor vira texto, o Agent organiza e cada cena é gerada.",n:["Microphone","Transcribe Audio","Agent","JSON Extract Value","Generate Image"]}
+];
+const TOP10=[["Image Blend Compositor","logos, efeitos e fundos"],["Color Match","consistência entre referências"],["Apply Mask","composição com transparência"],["Extend Canvas","formatos panorâmicos"],["Image Bash","criação de moodboards"],["Extract Key Colors","paletas cromáticas"],["Extract Last Frame","encadeamento de vídeo"],["Video Color Match","consistência entre clipes"],["Agent","geração e organização de prompts"],["JSON Extract Value","recuperação de saídas estruturadas"]];
+
+const IDX={};
+const slug=s=>s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const parse=io=>{const[a,b]=io.split(">");const f=x=>!x||x==="none"?[]:x.split(",");return{i:f(a),o:f(b)}};
+CATS.forEach(c=>c.nodes.forEach(n=>{const p=parse(n[1]);IDX[n[0]]={nome:n[0],cat:c,fn:n[2],ex:n[3],chain:n[4],i:p.i,o:p.o,id:"n-"+slug(n[0])}}));
+
+const tdot=t=>`<b style="--tc:var(${TCOR[t]})"></b>`;
+const port=(t)=>`<span class="pt">${tdot(t)}${esc(TIPOS[t])}</span>`;
+function chainHTML(ch,me){
+  return ch.split(" → ").map(x=>{const n=IDX[x];
+    if(x===me) return `<span class="c me">${esc(x)}</span>`;
+    return n?`<a class="c" href="#${n.id}">${esc(x)}</a>`:`<span class="c">${esc(x)}</span>`;
+  }).join('<span class="ar">→</span>');
+}
+function card(n){
+  const ins=n.i.length?n.i.map(port).join(""):'<span class="pt none">sem entrada</span>';
+  const outs=n.o.length?n.o.map(port).join(""):'<span class="pt none">só exibe</span>';
+  return `<article class="node" id="${n.id}" style="--c:var(${n.cat.cor})" data-s="${esc((n.nome+" "+n.fn+" "+n.ex+" "+n.cat.nome).toLowerCase())}">
+  <div class="nh"><i></i><h3>${esc(n.nome)}</h3><span class="cat">${esc(n.cat.nome)}</span></div>
+  <div class="vis" role="button" tabindex="0" data-v="${esc(n.nome)}" aria-label="Ampliar antes e depois de ${esc(n.nome)}">${visSlots()}</div>
+  <div class="ports"><div class="in">${ins}</div><div class="out">${outs}</div></div>
+  <div class="nb">
+    <p class="fn">${esc(n.fn)}</p>
+    <div class="ex"><span class="k">Exemplo de uso</span><p>${esc(n.ex)}</p></div>
+    <div class="chain" aria-label="Onde fica no fluxo">${chainHTML(n.chain,n.nome)}</div>
+    <div class="acts"><button class="btn" type="button" data-add="${esc(n.nome)}">+ Fluxo</button><button class="btn" type="button" data-cp="${esc(n.nome)}">Copiar exemplo</button></div>
+  </div></article>`;
+}
+
+// render
+const sec=document.getElementById("secoes"), cats=document.getElementById("cats");
+let total=0;
+CATS.forEach(c=>{total+=c.nodes.length;
+  sec.insertAdjacentHTML("beforeend",`<section class="sec" id="${c.id}" data-cat style="--c:var(${c.cor})">
+  <div class="sec-h"><span class="dotc"></span><h2>${esc(c.nome)}</h2><span class="cnt" data-cnt>${c.nodes.length} nodes</span><p>${esc(c.desc)}</p></div>
+  <div class="grid">${c.nodes.map(n=>card(IDX[n[0]])).join("")}</div></section>`);
+  cats.insertAdjacentHTML("beforeend",`<a href="#${c.id}" style="--c:var(${c.cor})" data-l="${c.id}"><i></i>${esc(c.nome)}<span class="n">${c.nodes.length}</span></a>`);
+});
+cats.insertAdjacentHTML("beforeend",`<div class="sep"></div><a href="#montador" data-l="montador"><i style="background:var(--acc)"></i>Montador de fluxo</a><a href="#workflows" data-l="workflows"><i style="background:var(--acc)"></i>Workflows prontos<span class="n">${WFS.length}</span></a><a href="#top10" data-l="top10"><i style="background:var(--acc)"></i>Dez para telões</a><a href="#bibliotecas" data-l="bibliotecas"><i style="background:var(--dim)"></i>Bibliotecas extras</a><a href="#limites" data-l="limites"><i style="background:var(--dim)"></i>Antes de usar</a>`);
+document.querySelector(".brand small").textContent=total+" nodes · Griptape Nodes";
+const leg=document.getElementById("legenda");
+["img","vid","txt","json","list","dict","num","bool","mask","aud","ia","any","d3"].forEach(t=>leg.insertAdjacentHTML("beforeend",`<span>${tdot(t).replace("<b ",'<b class="pt-d" ')}${TIPOS[t]}</span>`));
+leg.querySelectorAll("b").forEach(b=>{b.style.cssText+=";width:10px;height:10px;border-radius:50%;border:2.5px solid var(--tc);background:var(--panel);display:inline-block"});
+document.getElementById("todos").innerHTML=Object.keys(IDX).map(k=>`<option value="${esc(k)}">`).join("");
+
+// busca
+const q=document.getElementById("q"), semRes=document.getElementById("semRes");
+function filtra(){
+  const v=q.value.trim().toLowerCase(); let vis=0;
+  document.querySelectorAll("[data-cat]").forEach(s=>{
+    let n=0; s.querySelectorAll(".node").forEach(c=>{const ok=!v||c.dataset.s.includes(v); c.hidden=!ok; if(ok)n++});
+    s.hidden=n===0; s.querySelector("[data-cnt]").textContent=v?`${n} de ${s.querySelectorAll(".node").length}`:`${n} nodes`; vis+=n;
+  });
+  semRes.hidden=vis>0;
+}
+q.addEventListener("input",filtra);
+document.addEventListener("keydown",e=>{if(e.key==="/"&&document.activeElement.tagName!=="INPUT"&&document.activeElement.tagName!=="TEXTAREA"){e.preventDefault();q.focus()}});
+
+// marca categoria ativa
+const links=[...cats.querySelectorAll("a")];
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.toggle("on",l.dataset.l===e.target.id))}})},{rootMargin:"-30% 0px -60% 0px"});
+document.querySelectorAll("main > section[id], #secoes > section").forEach(s=>obs.observe(s));
+
+// copiar
+function copia(txt,btn,ok){
+  const fim=m=>{if(btn){const o=btn.textContent;btn.textContent=m;btn.classList.add("ok");setTimeout(()=>{btn.textContent=o;btn.classList.remove("ok")},1600)}};
+  try{navigator.clipboard.writeText(txt).then(()=>fim(ok||"Copiado"),()=>fallback(txt,fim))}catch(e){fallback(txt,fim)}
+}
+function fallback(txt,fim){const t=document.createElement("textarea");t.value=txt;t.style.position="fixed";t.style.opacity="0";document.body.appendChild(t);t.select();let r=false;try{r=document.execCommand("copy")}catch(e){}t.remove();fim(r?"Copiado":"Selecione e copie manualmente")}
+const nomesT=a=>a.length?a.map(t=>TIPOS[t]).join(", "):"nenhuma";
+
+// montador
+let fluxo=["Text Input","Agent","JSON Extract Value","Generate Image","Color Match","Save Image"];
+const trilho=document.getElementById("trilho"), alertas=document.getElementById("alertas"), ped=document.getElementById("pedido"), obj=document.getElementById("obj");
+function liga(a,b){
+  if(!a.o.length||!b.i.length) return {st:"warn",m:!a.o.length?`${a.nome} não tem saída para ligar em ${b.nome}.`:`${b.nome} não recebe entrada; ${a.nome} ficaria solto.`};
+  if(a.o.includes("any")||b.i.includes("any")) return {st:"ok",t:"qualquer"};
+  const c=a.o.find(t=>b.i.includes(t));
+  if(c) return {st:"ok",t:TIPOS[c]};
+  return {st:"warn",m:`${a.nome} sai como ${nomesT(a.o)} e ${b.nome} espera ${nomesT(b.i)}. Pode precisar de um node de conversão entre eles.`};
+}
+function render(){
+  trilho.innerHTML=""; alertas.innerHTML="";
+  if(!fluxo.length){trilho.innerHTML='<span class="vz">Fluxo vazio. Adicione nodes pelo campo acima ou pelo botão + Fluxo nos cartões.</span>'}
+  const ligs=[];
+  fluxo.forEach((nm,i)=>{
+    const n=IDX[nm];
+    if(i>0){const l=liga(IDX[fluxo[i-1]],n);ligs.push(l);
+      trilho.insertAdjacentHTML("beforeend",`<div class="lig ${l.st}"><small>${l.st==="ok"?esc(l.t):"confira"}</small><div class="w"></div></div>`);
+      if(l.st==="warn") alertas.insertAdjacentHTML("beforeend",`<div class="alerta"><b>Ligação ${i}→${i+1}:</b> ${esc(l.m)}</div>`);}
+    trilho.insertAdjacentHTML("beforeend",`<div class="mn"><span class="num">${String(i+1).padStart(2,"0")}</span><span class="t">${esc(nm)}</span>
+      <span class="io">entra ${n.i.length?n.i.map(t=>tdot(t)).join(""):"—"} sai ${n.o.length?n.o.map(t=>tdot(t)).join(""):"—"}</span>
+      <button class="x" type="button" data-rm="${i}" aria-label="Remover ${esc(nm)}">×</button></div>`);
+  });
+  const linhas=fluxo.map((nm,i)=>{const n=IDX[nm];return `${i+1}. ${nm}: ${n.fn}\n   entra: ${nomesT(n.i)} | sai: ${nomesT(n.o)}`});
+  const avisos=ligs.map((l,i)=>l.st==="warn"?`- Ligação ${i+1}→${i+2}: ${l.m}`:null).filter(Boolean);
+  ped.textContent=`Quero montar este fluxo no Griptape Nodes.
+
+Objetivo: ${obj.value.trim()||"(descreva o objetivo)"}
+
+Nodes, na ordem em que se ligam:
+${linhas.join("\n")||"(nenhum node ainda)"}
+${avisos.length?`\nPontos de atenção nas ligações:\n${avisos.join("\n")}\n`:""}
+Para cada ligação, diga qual porta de saída conecta em qual porta de entrada, que parâmetros devo ajustar para esse objetivo e se preciso de algum node de conversão de tipo (por exemplo json para lista). Considere que os nomes exatos das portas podem variar conforme a versão instalada.`;
+}
+function add(nm){if(IDX[nm]){fluxo.push(nm);render();return true}return false}
+trilho.addEventListener("click",e=>{const b=e.target.closest("[data-rm]");if(b){fluxo.splice(+b.dataset.rm,1);render()}});
+const addIn=document.getElementById("addIn");
+function addCampo(){const v=addIn.value.trim();const k=Object.keys(IDX).find(x=>x.toLowerCase()===v.toLowerCase());if(k&&add(k)){addIn.value=""}else{addIn.setCustomValidity("Escolha um node da lista");addIn.reportValidity();setTimeout(()=>addIn.setCustomValidity(""),1500)}}
+document.getElementById("addBt").onclick=addCampo;
+addIn.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addCampo()}});
+document.getElementById("limpar").onclick=()=>{fluxo=[];render()};
+obj.addEventListener("input",render);
+document.getElementById("copiar").onclick=e=>copia(ped.textContent,e.currentTarget,"Pedido copiado");
+const pre=document.getElementById("preset");
+WFS.forEach((w,i)=>pre.insertAdjacentHTML("beforeend",`<option value="${i}">${esc(w.t)}</option>`));
+pre.onchange=()=>{if(pre.value!==""){const w=WFS[+pre.value];fluxo=[...w.n];obj.value=w.d;render();pre.value=""}};
+
+// cartões: + Fluxo e copiar exemplo
+document.getElementById("secoes").addEventListener("click",e=>{
+  const a=e.target.closest("[data-add]"); if(a){add(a.dataset.add);const o=a.textContent;a.textContent=`No fluxo (${fluxo.length})`;a.classList.add("ok");setTimeout(()=>{a.textContent=o;a.classList.remove("ok")},1400);return}
+  const vs=e.target.closest(".vis"); if(vs){abreLb(vs.dataset.v);return}
+  const c=e.target.closest("[data-cp]"); if(c){const n=IDX[c.dataset.cp];copia(`${n.nome} (${n.cat.nome})\nFunção: ${n.fn}\nExemplo: ${n.ex}\nNo fluxo: ${n.chain}\nEntra: ${nomesT(n.i)} | Sai: ${nomesT(n.o)}`,c)}
+});
+
+// workflows
+document.getElementById("wfCnt").textContent=WFS.length+" sequências";
+document.getElementById("wfs").innerHTML=WFS.map((w,i)=>`<div class="wf"><h3>${esc(w.t)}</h3><p>${esc(w.d)}</p><div class="chain">${chainHTML(w.n.join(" → "),null)}</div><div class="acts"><button class="btn pri" type="button" data-wf="${i}">Abrir no montador</button></div></div>`).join("");
+document.getElementById("wfs").addEventListener("click",e=>{const b=e.target.closest("[data-wf]");if(!b)return;const w=WFS[+b.dataset.wf];fluxo=[...w.n];obj.value=w.d;render();document.getElementById("montador").scrollIntoView()});
+
+// top 10
+document.getElementById("t10").innerHTML=TOP10.map(([n,d])=>`<li><div><a href="#${IDX[n].id}">${esc(n)}</a><span>${esc(d)}</span></div></li>`).join("");
+
+render();
+
+// antes e depois: render preguiçoso + ampliação
+function fillVis(el,name,w,h){const v=VIS[name];if(!v)return;["a","d"].forEach((k,i)=>{const p=el.querySelector(`[data-p="${k}"]`);let node;try{node=v[i](w,h)}catch(err){console.error(name,err);node=document.createElement("div")}p.prepend(node)})}
+const vio=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){vio.unobserve(e.target);fillVis(e.target,e.target.dataset.v,VW,VH)}}),{rootMargin:"700px 0px"});
+Promise.race([document.fonts?document.fonts.ready:Promise.resolve(),new Promise(r=>setTimeout(r,1200))]).then(()=>document.querySelectorAll("#secoes .vis").forEach(v=>vio.observe(v)));
+document.getElementById("secoes").addEventListener("keydown",e=>{const vs=e.target.closest&&e.target.closest(".vis");if(vs&&(e.key==="Enter"||e.key===" ")){e.preventDefault();abreLb(vs.dataset.v)}});
+const lbx=document.getElementById("lbx");let lbFrom=null;
+function abreLb(name){const n=IDX[name];lbFrom=document.activeElement;document.getElementById("lbT").textContent=name;document.getElementById("lbE").textContent=n.ex;const V=document.getElementById("lbV");V.innerHTML=visSlots();fillVis(V,name,640,480);lbx.hidden=false;document.getElementById("lbX").focus()}
+function fechaLb(){lbx.hidden=true;document.getElementById("lbV").innerHTML="";if(lbFrom)lbFrom.focus()}
+document.getElementById("lbX").onclick=fechaLb;
+lbx.addEventListener("click",e=>{if(e.target===lbx)fechaLb()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!lbx.hidden)fechaLb()});
+</script>
+
+</body>
+</html>
