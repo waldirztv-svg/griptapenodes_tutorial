@@ -172,6 +172,16 @@ main{min-width:0}
 .chain a.c:hover{background:var(--hover);color:var(--ink)}
 .chain .c.me{border-color:var(--acc);color:var(--acc);background:var(--acc-soft)}
 .chain .ar{color:var(--dim)}
+.lbg{padding:4px 16px 4px}
+.lbg h4{font:500 12px var(--f-body);color:var(--dim);margin:12px 0 6px}
+.grafo{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background-color:var(--panel2);background-image:radial-gradient(var(--line2) 1px,transparent 1.2px);background-size:16px 16px}
+.grafo svg{display:block;margin:0 auto}
+.grafo [data-gn]{cursor:pointer}
+.grafo [data-gn]:hover rect.bx{stroke:var(--acc)}
+.glg{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px}
+.glg span{display:inline-flex;align-items:center;gap:6px;font:400 12px var(--f-mono);color:var(--mut)}
+.glg i{width:18px;height:3px;border-radius:2px;background:var(--tc)}
+.gwarn{margin-top:8px;font-size:13px;color:var(--ink);background:color-mix(in srgb,var(--t-txt) 12%,transparent);border:1px solid color-mix(in srgb,var(--t-txt) 45%,transparent);border-radius:8px;padding:7px 10px}
 .lbc>.acts{padding:12px 16px 16px;border-top:1px solid var(--line);margin-top:8px}
 @media(max-width:700px){.lbv,.lbd{grid-template-columns:1fr}}
 
@@ -220,8 +230,9 @@ code{font:400 .9em var(--f-mono);background:var(--panel2);border-radius:4px;padd
     <div class="lbv" id="lbV"></div>
     <div class="lbd">
       <div><h4>Função</h4><p id="lbF"></p><h4>Exemplo de uso</h4><p id="lbE"></p></div>
-      <div><h4>Entradas e saídas</h4><div class="ports" id="lbP"></div><h4>Onde fica no fluxo</h4><div class="chain" id="lbCh"></div></div>
+      <div><h4>Entradas e saídas</h4><div class="ports" id="lbP"></div></div>
     </div>
+    <div class="lbg"><h4>Como ligar no fluxo</h4><div class="grafo" id="lbG"></div><div class="glg" id="lbL"></div><div id="lbW"></div></div>
     <div class="acts" id="lbA"></div>
   </div>
 </div>
@@ -767,8 +778,34 @@ document.getElementById("secoes").addEventListener("keydown",e=>{const vs=e.targ
 const lbx=document.getElementById("lbx");let lbFrom=null;
 function abreLb(name){const n=IDX[name];if(lbx.hidden)lbFrom=document.activeElement;const $=id=>document.getElementById(id);$("lbT").textContent=name;$("lbC").innerHTML=`<i></i>${esc(n.cat.nome)}`;$("lbC").style.setProperty("--c",`var(${n.cat.cor})`);$("lbF").textContent=n.fn;$("lbE").textContent=n.ex;
   $("lbP").innerHTML=`<div><small>Entra</small>${n.i.length?n.i.map(port).join(""):'<span class="pt none">sem entrada</span>'}</div><div><small>Sai</small>${n.o.length?n.o.map(port).join(""):'<span class="pt none">só exibe</span>'}</div>`;
-  $("lbCh").innerHTML=chainHTML(n.chain,n.nome);$("lbA").innerHTML=actsHTML(n);
+  grafo(n);$("lbA").innerHTML=actsHTML(n);
   const V=$("lbV");V.innerHTML=visSlots();fillVis(V,name,640,480);lbx.hidden=false;lbx.querySelector(".lbc").scrollTop=0;$("lbX").focus()}
+function ligTipo(a,b){if(!a.o.length||!b.i.length)return null;if(b.i.includes("any"))return a.o[0];if(a.o.includes("any"))return b.i[0];return b.i.find(t=>a.o.includes(t))||null}
+function grafo(n){const $=id=>document.getElementById(id);
+  const ns=n.chain.split(" → ").map(x=>IDX[x]||{nome:x,i:["any"],o:["any"],cat:{cor:"--t-any"},fake:1});
+  const BW=190,GAP=84,HD=32,PR=20,PAD=16,cut=t=>t.length>22?t.slice(0,21)+"…":t;
+  const geo=ns.map(m=>{const rows=Math.max(m.i.length,m.o.length,1);return{rows,h:HD+8+rows*PR+10}}),mh=Math.max(...geo.map(g=>g.h));
+  const W=PAD*2+ns.length*BW+(ns.length-1)*GAP,H=mh+PAD*2;
+  const bx=ns.map((m,i)=>({x:PAD+i*(BW+GAP),y:PAD+(mh-geo[i].h)/2}));
+  const py=(i,k)=>bx[i].y+HD+8+k*PR+PR/2;
+  let w="",b="",usados=new Set(),avisos=[];
+  ns.forEach((m,i)=>{if(i===ns.length-1)return;const nx=ns[i+1],t=ligTipo(m,nx),x1=bx[i].x+BW,x2=bx[i+1].x;
+    if(t){usados.add(t);const ko=Math.max(0,m.o.indexOf(t)>=0?m.o.indexOf(t):m.o.indexOf("any")),ki=Math.max(0,nx.i.indexOf(t)>=0?nx.i.indexOf(t):nx.i.indexOf("any")),y1=py(i,ko),y2=py(i+1,ki),dx=GAP*.55;
+      w+=`<path d="M${x1} ${y1}C${x1+dx} ${y1} ${x2-dx} ${y2} ${x2} ${y2}" style="fill:none;stroke:var(${TCOR[t]});stroke-width:3"/>`}
+    else{const y1=bx[i].y+geo[i].h/2,y2=bx[i+1].y+geo[i+1].h/2;w+=`<path d="M${x1} ${y1}L${x2} ${y2}" style="fill:none;stroke:var(--dim);stroke-width:2;stroke-dasharray:5 5"/><text x="${(x1+x2)/2}" y="${(y1+y2)/2-8}" text-anchor="middle" style="fill:var(--dim);font:600 13px var(--f-mono)">?</text>`;
+      avisos.push(`${m.nome} sai como ${nomesT(m.o)} e ${nx.nome} espera ${nomesT(nx.i)}: pode precisar de um node de conversão entre eles.`)}});
+  ns.forEach((m,i)=>{const{x,y}=bx[i],h=geo[i].h,me=m.nome===n.nome,clic=!me&&!m.fake;
+    let g=`<g${clic?` data-gn="${esc(m.nome)}"`:""}>`;
+    g+=`<rect class="bx" x="${x}" y="${y}" width="${BW}" height="${h}" rx="9" style="fill:var(--panel);stroke:${me?"var(--acc)":"var(--line2)"};stroke-width:${me?2:1}"/>`;
+    g+=`<path d="M${x+.5} ${y+HD}H${x+BW-.5}" style="stroke:var(--line)"/><rect x="${x+11}" y="${y+HD/2-4}" width="8" height="8" rx="2" style="fill:var(${m.cat.cor})"/>`;
+    g+=`<text x="${x+26}" y="${y+HD/2+4.5}" style="fill:var(--ink);font:600 12.5px var(--f-body)">${esc(cut(m.nome))}</text>`;
+    const P=(arr,lado)=>{if(!arr.length){g+=`<text x="${lado==="in"?x+12:x+BW-12}" y="${py(i,0)+4}" text-anchor="${lado==="in"?"start":"end"}" style="fill:var(--dim);font:italic 11px var(--f-body)">${lado==="in"?"sem entrada":"só exibe"}</text>`;return}
+      arr.forEach((t,k)=>{const cx=lado==="in"?x:x+BW,cy=py(i,k);g+=`<circle cx="${cx}" cy="${cy}" r="5.5" style="fill:var(--panel);stroke:var(${TCOR[t]});stroke-width:2.6"/><text x="${lado==="in"?x+12:x+BW-12}" y="${cy+4}" text-anchor="${lado==="in"?"start":"end"}" style="fill:var(--mut);font:400 11px var(--f-mono)">${esc(TIPOS[t])}</text>`})};
+    P(m.i,"in");P(m.o,"out");b+=g+"</g>"});
+  $("lbG").innerHTML=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Diagrama de ligação: ${esc(n.chain)}">${w}${b}</svg>`;
+  $("lbL").innerHTML=[...usados].map(t=>`<span style="--tc:var(${TCOR[t]})"><i></i>fio de ${esc(TIPOS[t])}</span>`).join("");
+  $("lbW").innerHTML=avisos.map(a=>`<div class="gwarn">${esc(a)}</div>`).join("")}
+lbx.addEventListener("click",e=>{const gn=e.target.closest("[data-gn]");if(gn){abreLb(gn.dataset.gn);return}});
 lbx.addEventListener("click",e=>{if(acao(e))return;const l=e.target.closest("a.c[data-n]");if(l){e.preventDefault();abreLb(l.dataset.n)}});
 function fechaLb(){lbx.hidden=true;document.getElementById("lbV").innerHTML="";if(lbFrom)lbFrom.focus()}
 document.getElementById("lbX").onclick=fechaLb;
